@@ -1,0 +1,16 @@
+
+```{r, echo=F, include=F}
+rmarkdown::render("./CABIN_vv_general.Rmd")
+```
+
+```{r, echo=F, include=F}
+rmarkdown::render("./CABIN_vv_biology.Rmd")
+```
+
+```{r, echo=F, include=F}
+rmarkdown::render("./CABIN_vv_habitat.Rmd")
+```
+
+```{r echo=F, include=F}
+rmarkdown::render("./CABIN_vv_spatial.Rmd")
+```

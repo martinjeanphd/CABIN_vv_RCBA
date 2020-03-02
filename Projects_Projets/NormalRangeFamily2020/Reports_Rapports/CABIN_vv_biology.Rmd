@@ -1,0 +1,1099 @@
+---
+date: '2019-08-13'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 4
+  html_document:
+    df_print: paged
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  word_document:
+    toc: yes
+version: '1.2'
+---
+
+| ![](../../../Configuration/gc_en.png)  |  ![](../../../Configuration/rcba_logo.png) |
+|:------------------------------------|--------------------------------------:|                            
+
+
+#CABIN VERIFICATION AND VALIDATION - BIOLOGICAL DATA
+
+*Environment and Climate Change Canada*
+
+*Analysis performed on `r Sys.time()`*
+
+***
+
+
+This report presents the results for verification and validation of a biological CABIN data file associated to the project:
+
+```{r}
+print(datasetName)
+```
+
+In this analysis, the biological dataset is checked to answer the following question:
+  
+  + Are the biological data reflecting the sites visited?
+
+This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.com). When you execute the code embedded in the notebook, the results will appear under the corresponding code. To do this, place your cursor inside a chunk (box which contains *R* code) and click the green arrow to the right of it named *Run Current Chunk* or press *Ctrl+Shift+Enter* (*Cmd+Shift+Enter* in *macOS*) on your keyboard. Repeat for each chunk. As the code contained in this notebook is executed, the results will appear under each of the corresponding chunks in this window. Once all commands are executed, click the *Preview* button at the top left of this window or press the *Ctrl+Shift+K* keys (*Cmd+Shift+K* in *macOS*). A new window will appear and will contain the report of these verification and validation results for the biological CABIN data.
+
+
+
+##Requirements
+
+```{r include=FALSE}
+## Required Packages and Custom Functions
+source("../../../Required_packages.R")
+source("../../../Required_functions.R")
+
+
+## Project Preferences
+source("../../../Configuration/project_settings.R")
+
+```
+
+##Descriptive Statistics
+
+The data file contains:
+
+```{r}
+paste(nrow(dataset.BIO), " visits (lines) and ", ncol(dataset.BIO), " variables (columns).", sep = "")
+  # `r {nrow(dataset.BIO)} ` visits (lines) and `r {ncol(dataset.BIO)}` variables (columns).
+```
+
+
+The following table presents a subset of the data.
+
+
+**Reading Biological Data**
+
+`r datatable(dataset.BIO, filter = "top", rownames=F, options = list(scrollX = TRUE )) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+>
+> - *Does the file seem to been read correctly?*
+> - *Are columns missing?*
+
+**List of visits present in the biological data (ID from the CABIN database):**  
+
+`r rownames(dataset.BIO) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+> - *Compare the list above with the following table which shows the visits from all the data for this project.*
+
+
+`r datatable(dataset.NAM, filter = "top", rownames=F, options = list(scrollX = TRUE ))`
+
+**Variables List:**  
+
+`r colnames(dataset.BIO) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the variables above and make sure they are all present.
+
+
+##General Statistics
+
+The following table shows the main general parameters per variable. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable.
+
+**Table of General Statistics**
+
+```{r 2, echo=FALSE}
+
+#Table Of General Statistics
+
+
+{summary.BIO <- as.data.frame(t(do.call(cbind, lapply(dataset.BIO, summary))))
+summary.BIO$Std.deviation <- apply(dataset.BIO, 2, sd, na.rm = T)
+summary.BIO$Length <- colSums(!is.na(dataset.BIO))
+summary.BIO$BinaryData <- sapply(dataset.BIO,function(x)length(unique(na.omit(x)))<=2)
+summary.BIO$NA.values <- colSums(is.na(dataset.BIO))
+summary.BIO$`NA's` <- NULL
+summary.BIO <- as.data.frame(t(summary.BIO))
+summary.BIO
+}
+datatable(summary.BIO, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+
+```
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+> - *Examine the data and make sure it reflects reality. Examine statistics and identify, if present, anomalies with statistics.*
+
+
+##Geographical Distribution
+
+
+###Taxa Distribution
+
+The following graphs show the location (latitude and longitude) ainsi que l'abondance en taxons des sites observées dans le fichier de données pour chaque taxon.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+> - *Is the geographical distribution of taxa showing anomalies?*
+> - *Is there data that are odd?*
+
+
+```{r 3, echo=FALSE, warning=FALSE}
+#Geographical distribution of taxa
+
+dataset.GEN2 <- dataset.GEN
+dataset.BIO2 <- left_join(dataset.BIO2, dataset.GEN2[,c("SampleId", "Longitude", "Latitude")], by = "SampleId")
+if("Longitude.x" %in% colnames(dataset.BIO2)){colnames(dataset.BIO2)[which(colnames(dataset.BIO2) == "Longitude.x")] <- "Longitude"}
+if("Latitude.x" %in% colnames(dataset.BIO2)){colnames(dataset.BIO2)[which(colnames(dataset.BIO2) == "Latitude.x")] <- "Latitude"}
+if("Longitude.y" %in% colnames(dataset.BIO2)){dataset.BIO2$Longitude.y <- NULL}
+if("Latitude.y" %in% colnames(dataset.BIO2)){dataset.BIO2$Latitude.y <- NULL}
+
+size <- dataset.BIO2[(2:ncol(dataset.BIO2))-2]
+
+for(i in 2:(ncol(dataset.BIO2)-2)){
+graph.geo.ab <- ggplot(dataset.BIO2, aes(dataset.BIO2$Longitude, dataset.BIO2$Latitude)) +
+  geom_point(shape = 21, aes(size = size[,i])) + #Broken on ggplot2 3.2.0, 3.1.0, 3.0.0
+  ggtitle(paste("Distribution of", colnames(dataset.BIO2[i]))) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_size(range = c(1,10), name = "Abundance")
+graph.geo.ab
+print(graph.geo.ab)
+}
+
+rm(size)
+rm(dataset.GEN2)
+
+```
+
+
+###Richness Distribution
+
+The following graphs show the location (latitude and longitude) and taxa richness on sites.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+> 
+> - *Is the geographical distribution of richness showing anomalies?*
+> - *Are some richness measures out of the ordinary?*
+> - *Is there a pattern in taxa richness?*
+
+
+```{r 4, echo=FALSE}
+#Geographical Distribution of taxa richness
+
+dataset.BIO2$richness <- apply(dataset.BIO > 0, 1, sum, na.rm=TRUE)
+dataset.SPA2 <- dataset.SPA
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[,c("SampleId", "richness")], by = "SampleId")
+
+if("richness.x" %in% colnames(dataset.SPA2)){colnames(dataset.SPA2)[which(colnames(dataset.SPA2) == "richness.x")] <- "richness"}
+if("richness.y" %in% colnames(dataset.SPA2)){dataset.SPA2$richness.y <- NULL}
+
+graph.geo.sp <- ggplot(dataset.SPA2, aes(dataset.SPA2$Longitude, dataset.SPA2$Latitude)) +
+  geom_point(shape = 21, aes(size = dataset.SPA2$richness), na.rm = TRUE) +
+  ggtitle(paste("Geographical Distribution of Taxa Richness")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_size(range = c(1,10), name = "Taxa Richness")
+graph.geo.sp
+
+```
+
+
+The following interactive map illustrates the same data as the above graph. Click on a point to show the taxa richness.
+
+```{r 5, echo=FALSE, fig.height=5.5, fig.width=8.5, message=FALSE, include=TRUE}
+#Map of taxa richness
+
+dataset.NAM2 <- dataset.NAM
+dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, dataset.NAM2$SampleDate, dataset.NAM2$SampleId)
+dataset.SPA2 <- dataset.SPA
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleId")
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate")], by = "SampleId")
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[, c("SampleId", "richness")], by = "SampleId")
+dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleId)
+dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
+dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
+dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
+
+cabinPoints <- SpatialPointsDataFrame(coords = na.omit(dataset.SPA[, 1:2]), data = na.omit(dataset.SPA[,1:2]))
+
+getColor2 <- function(dataset.SPA2) {
+  sapply(dataset.SPA2$SampleDate, function(SampleDate) {
+  if(SampleDate <= "2005-12-31") {
+    "green"
+  } else if(SampleDate <= "2006-12-31") {
+    "yellow"
+  } else if(SampleDate <= "2007-12-31") {
+    "darkorange"
+  } else if(SampleDate <= "2008-12-31") {
+    "red"
+  } else if(SampleDate <= "2009-12-31") {
+    "pink"
+  } else if(SampleDate <= "2010-12-31") {
+    "blue"
+  } else if(SampleDate <= "2011-12-31") {
+    "darkgreen"
+  } else if(SampleDate <= "2012-12-31") {
+    "cyan"
+  } else if(SampleDate <= "2013-12-31") {
+    "deeppink"
+  } else if(SampleDate <= "2014-12-31") {
+    "lightblue"
+  } else if(SampleDate <= "2015-12-31") {
+    "lightseagreen"
+  } else if(SampleDate <= "2016-12-31") {
+    "darkviolet"
+  } else if(SampleDate <= "2017-12-31") {
+    "darkred"
+  } else if(SampleDate <= "2018-12-31") {
+    "cadetblue"
+  } else if(SampleDate <= "2019-12-31") {
+    "black"
+  } else if(SampleDate <= "2020-12-31") {
+    "gray"
+  } else {
+    "brown"
+  } })
+} 
+
+#dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d") 
+#dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%Y")
+  
+    leaflet(data = dataset.SPA2) %>% addProviderTiles(providers$Esri.WorldTopoMap) %>% addCircleMarkers(~Longitude, ~Latitude, popup = paste( "Site_Year:", dataset.SPA2$Site_Year, "<br>", "Richness: ", dataset.SPA2$richness, "<br>"), label = (dataset.SPA2$Site_Year), radius = dataset.SPA2$richness, color = getColor2(dataset.SPA2), stroke = F, fillOpacity = 0.5, clusterOptions = markerClusterOptions()) %>% addLegend(
+  position = 'bottomright',
+  colors = palette(),
+  labels = palette(),
+  opacity = 1,
+  title = 'Legend')
+  
+rm(dataset.SPA2)
+
+```
+
+
+##Presence of Outliers
+
+###Dispersion of Observed Values
+
+The following scatterplots present the value of the taxa abundances observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+> 
+> - *Is the distribution of abundance values indicating an ecological phenomenon or a potential problem (disturbance)?*
+> - *Are some taxa very rare or very frequent?*
+> - *Is a problem with abundant data apparent?*
+
+
+```{r 6, echo=FALSE, warning=FALSE}
+#Scatterplots of observed values
+
+
+dataset.BIO2 <- left_join(dataset.BIO2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleId")
+
+for(j in 2:(ncol(dataset.BIO2)-4)){
+plot.ab <- ggplot(dataset.BIO2, aes(x = dataset.BIO2$Site_Date_Number, y = dataset.BIO2[,j])) +
+  geom_point() +
+  labs(y = "Abondunce", x = "Visit") +
+  theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
+   scale_x_discrete(breaks = "", labels = "", na.value = NA) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Abundance of", colnames(dataset.BIO2[j]), "per visit"))
+#plot.ab
+print(plot.ab)
+}
+
+```
+
+###Boxplots of Observed and Transformed Values
+
+The first boxplot (left) shows the distribution of continuous variable values observed in the data file, the middle illustrates the distribution of the logarithmic-transformed values, and the third box plot (right) shows the distribution of the square-root-transformed values.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following, putting your attention to points with a label (if present):*
+> 
+> - *Do data seem out of the ordinary?*
+> - *Is a data transformation showing a better statistical distribution than raw data?*
+
+
+
+```{r 7, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplots for observed and transformed values
+
+for(i in 1:ncol(dataset.BIO)){
+  box.ab.1 <- qplot(y = dataset.BIO[,i], x = "", geom = "boxplot", ylab = "Abundance") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle("Raw Data")
+  box.ab.2 <- qplot(y = dataset.BIO[,i], x = "", geom = "boxplot", ylab = "Log(Abundance)", log = "y") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle("Log")
+  box.ab.3 <- qplot(y = sqrt(dataset.BIO[,i]), x = "", geom = "boxplot", ylab = "Sqrt(Abundance)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle("Sqrt")
+
+  grid.arrange(box.ab.1, box.ab.2, box.ab.3, ncol = 3, top = colnames(dataset.BIO[i]))
+}
+
+```
+
+
+###Identification of potential outliers
+
+The first boxplot (left) shows the distribution of abundance values observed in the dataset and the dispersion diagram (right) show the distribution of abundance values in the order in which they appear in this file. Data with identification by their identifier on the diagrams are potentially outliers contained in the dataset. The method used to identify potentially outliers is the interquantile range (*IQR*). The IQR is calculated as follows:
+
+`IQR(x) = quantile(x, 3/4) - quantile(x, 1/4)`
+
+
+Potential outliers are defined as values below *Q1 - 1,5 IQR* or above *Q3 + 1,5 IQR*.
+
+The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sample number for this visit.
+
+The interpretation of Cleveland dotplot is done by looking at points that stick out on the right-hand side, or on the left-hand side. They are observed values that are considerable larger, or smaller, than the majority of the observations, and require further investigation. When the most likely explanation is that the extreme observations are measurement errors, they should be dropped because their presence is likely to dominate the analysis. On the other hand, if the removal of these values are not an option, a data transformation should be considered.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+> 
+> - *Are extreme values on the boxplots could be considered as outliers?*
+> - *Are those same points on Cleveland dotplot isolated (on the left or right)?*
+> - *Should some taxa (too rare or too abundant) not be considered in further analysis?*
+
+
+```{r 8, echo=FALSE, warning=FALSE}
+#Identification of potential outliers
+
+for (j in 2:(ncol(dataset.BIO2)-4)) {
+  boxplot <- ggplot(data = dataset.BIO2, aes(x = "", y = dataset.BIO2[,j])) +
+    geom_boxplot() +
+    ylab("Abundance") +
+    xlab("") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle("Boxplot") +
+    geom_text(aes(label = ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T)|dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, "")), hjust = -0.05, size = 3)
+
+  dotchart <- ggplot(data = dataset.BIO2, aes(y = seq(dataset.BIO2[,j]), x = dataset.BIO2[,j], na.rm = T)) +
+    geom_point(na.rm = T) +
+    ylab("Order of the data") +
+    xlab("Abundance") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle("Cleveland Dotplot") +
+    geom_text(aes(label = ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T)|dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, "")), hjust = -0.05, nudge_y = 2, size = 3)
+        
+  grid.arrange(boxplot, dotchart, ncol = 2, top = colnames(dataset.BIO2[j]))
+}
+```
+
+The following list shows another way of identifying potential outliers contained in the dataset for each variable. When the identifier of a data item is indicated therein, this indicates that this data represents potentially aberrant data contained in the data file. *""* indicates non-aberrant data and *NA* indicates missing values. The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sampling number.
+
+```{r 9, echo=FALSE, warning=FALSE}
+#Identification of potential outliers (part 2)
+
+for (j in 2:(ncol(dataset.BIO2)-4)) {
+cat(colnames(dataset.BIO2[j]), "\n")
+#list <- list(ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T) | dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, ""))
+Active_Frame_Bio <- data.frame(ifelse(is.na(dataset.BIO2[,j]), "", ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T) | dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, "")))
+Active_Frame_Bio["Is NA"] = list(ifelse(is.na(dataset.BIO2[,j]), "Yes", "No"))
+colnames(Active_Frame_Bio) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",][[1]]), "\n\n")
+}
+
+```
+
+```{r 10, echo=FALSE, warning=FALSE}
+#Identification of potential outliers (part 2)
+
+for (j in 2:(ncol(dataset.BIO2)-4)) {
+cat(colnames(dataset.BIO2[j]), "\n")
+#list <- list(ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T) | dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, ""))
+Active_Frame_Bio <- data.frame(ifelse(is.na(dataset.BIO2[,j]), dataset.BIO2$Site_Date_Number, ""))
+Active_Frame_Bio["Is NA"] = list(ifelse(is.na(dataset.BIO2[,j]), "Yes", "No"))
+colnames(Active_Frame_Bio) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Missing Values:", length(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",][[1]]), "\n\n")
+}
+
+```
+
+##Presence of zeros 
+
+In ecological studies, we need to consider what it means when two species are jointly absent. This could say something important about the ecological characteristics of a site. When two sites both have the same joint absences, this might mean that the sites are ecologically similar. On the other hand, if a species has a highly clumped distribution, or is simply rare, then joint absences might arise through chance and say nothing about the suitability of a given site for a species, the similarity among the habitat needs of species or the ecological similarity of sites. A high frequency of zeros, thus, can greatly complicate interpretation of such analyses.
+
+###Abundance Frequency Distribution
+
+Abundance values a taxa commonly show a skew distribution that looks like a log-normal distribution, with many small to moderate values and a few extremely large values.
+
+The following histogram illustrates the abundance frequency distribution of taxa. This chart helps, among other things, to evaluate the number of 0 values in the dataset. 
+
+```{r 11, echo=FALSE, warning=FALSE}
+#Histogram of Abundance Frequency distribution
+
+#dataset.BIO_bk <- dataset.BIO
+#dataset.BIO[is.na(dataset.BIO)] <- 0
+
+count.mean <- mean(unlist(dataset.BIO))
+count.sd <- sd(unlist(dataset.BIO))
+
+count.n <- length(which(!is.na(unlist(dataset.BIO))))
+
+count.bin <- ceiling((max(unlist(dataset.BIO))- min(unlist(dataset.BIO)))/nclass.Sturges(unlist(dataset.BIO)))
+
+graph.count <- ggplot() +
+  aes(round(unlist(dataset.BIO))) +
+  geom_histogram(binwidth = count.bin, fill = I('lightblue'), color=I('black')) +
+  xlab("Observed values") +
+  ylab("Frequency") + 
+  ggtitle("Abundance Frequencies") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggiraph(code = print(graph.count), zoom_max = 10, height_svg = 4)
+
+#dataset.BIO[dataset.BIO == 0] <- NA
+#dataset.BIO <- dataset.BIO_bk
+
+```
+
+
+###Presence of double-zeros
+
+We need to know whether there are double zeros in the data. This means that for each species-pair, we need to calculate how often both had zero abundance for the same site.
+
+The following correlation matrix (or *corrgram*) illustrates the frequency with which pairs of taza both have zero abundance.The color and the amount that a circle has been filled correspond to the proportion of observations with double zeros. A white color indicates a correlation close to 0.5 whereas a dark blue color indicates a correlation near 1. This matrix also illustrates the proportion of correlation values. 0 abundances of a taxon relative to all abundance values observed in the latter. The diagonal running from bottom left to top right represents the percentage of observations of a taxa equal to zero. Only taxa present in more than 25% of the visits are shown.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examine the following:*
+> 
+> 
+> - *Are data showing a short or a long biological gradient?*
+> - *What the presence of double zeros means for the data?*
+
+
+```{r 12, echo=FALSE, fig.height=8, fig.width=14}
+#Correlation matrix for double-zeros between taxa with a frequency > 25%
+
+dataset.BIO[is.na(dataset.BIO)] <- 0
+
+#Liste des taxons
+AllS <- names(dataset.BIO)
+
+#Détermine la richesse
+occurrence <- colSums(dataset.BIO[,AllS] > 0, na.rm = TRUE)
+
+#Delete all covariables
+Benthos <- dataset.BIO[,AllS]
+
+#Reducing the number of taxa represented in the figure, only those with a frequency > 25% are kept.
+FreqMin <- 25
+Benthos25 <- Benthos[, occurrence > (ncol(Benthos)/100*FreqMin)]
+rm(Benthos)
+N <- ncol(Benthos25)
+
+
+AllNames <- names(Benthos25)
+A <- matrix(nrow = N, ncol = N)
+
+for (i in 1:N){
+  for (j in 1:N){
+    A[i,j] <- sum(dataset.BIO[,AllS[i]]==0  & dataset.BIO[,AllS[j]]==0, na.rm=TRUE)
+  }
+}
+
+
+A1 <- A/nrow(Benthos25)
+#print(A1, digits = 2)
+rownames(A1) <- AllNames
+colnames(A1) <- AllNames
+
+panel.corrgram.2 <- function(x, y, z, subscripts, at = pretty(z), scale = 0.8, ...)
+{
+    require("grid", quietly = TRUE)
+    x <- as.numeric(x)[subscripts]
+    y <- as.numeric(y)[subscripts]
+    z <- as.numeric(z)[subscripts]
+    zcol <- level.colors(z, at = at, ...)
+    for (i in seq(along = z))
+    {
+        lims <- range(0, z[i])
+        tval <- 2 * base::pi *
+            seq(from = lims[1], to = lims[2], by = 0.01)
+        grid.circle(x = x[i], y = y[i], r = .5 * scale,
+                    default.units = "native")
+        grid.polygon(x = x[i] + .5 * scale * c(0, sin(tval)),
+                     y = y[i] + .5 * scale * c(0, cos(tval)),
+                     default.units = "native",
+                     gp = gpar(fill = zcol[i]))
+    }
+}
+
+levelplot(A1,xlab=NULL,ylab=NULL,
+    at=do.breaks(c(0.5,1.01),101),
+    panel=panel.corrgram.2,
+    scales=list(x=list(rot=90)),
+    colorkey=list(space="top"),
+    col.regions=colorRampPalette(c("white","blue")), 
+    main = "Corrgram of frequency of double-zeros")
+
+#dataset.BIO[dataset.BIO == 0] <- NA
+#dataset.BIO <- dataset.BIO_bk
+```
+
+
+##Data Normality 
+
+Various statistical techniques assume normality. It is important to know whether the statistical technique to be used does assume normality, and what exactly is assumed to be normally distributed? For example, a *Principal component analysis* (PCA) does not require normality. *Linear regression* does assume normality, but is reasonably robust against violation of the assumption. For other techniques like *discriminant analysis*, normality of observations of a particular variable within each group is important. Therefore, testing for normality (among other things) is always recommanded when starting the data analysis phase of an ecological project.
+
+###Quantile-Quantile (Q-Q) plots and et frequency histograms
+
+For each variable, the first graph (left) illustrates by points the observed distribution of taxon values and the theoretical normal distribution calculated from the parameters of the distribution observed by a line. The more the values observed are positioned on the right, the more these are distributed according to the normal law. The second graph (right) shows a histogram the frequency distribution of the values observed by taxon. It allows to verify and validate if the data distribution seems to follow the normal distribution. This histogram also illustrates the mean abundance per taxon by a solid line as well as the standard deviation of abundances per taxon by two dotted lines.
+
+```{r 13, echo=FALSE}
+#Q-Q plots and frequency distribution histograms
+
+for (i in 1:ncol(dataset.BIO)){
+norm.mean <- mean(dataset.BIO[,i], na.rm=T)
+norm.sd <- sd(dataset.BIO[,i], na.rm=T)
+norm.n <- length(which(!is.na(dataset.BIO[,i])))
+norm.bin <- ceiling(max(dataset.BIO[,i], na.rm=T)- min(dataset.BIO[,i], na.rm=T) /nclass.Sturges(which(!is.na(dataset.BIO[,i]))))
+
+par(mfrow = c(1,2), mar=c(4,4,3,1))
+
+qqnorm(dataset.BIO[,i], main = paste("Q-Q Plot\n", colnames(dataset.BIO[i])))
+qqline(dataset.BIO[,i],lty = 2)
+
+hist.ab <- hist(as.numeric(unlist(dataset.BIO[,i])), breaks = "Sturges", xlab = "Abondance", ylab = "Fréquence", main = paste("Frequency Distribution\n", colnames(dataset.BIO[i])))
+xfit <- seq(min(which(!is.na(dataset.BIO[,i]))), max(which(!is.na(dataset.BIO[,i]))), length=norm.n)
+yfit_density <- dnorm(xfit, mean = norm.mean, sd=norm.sd)
+yfit_freq <- yfit_density*diff(hist.ab$mids[1:2])*norm.n
+lines(xfit, yfit_freq, col="red", lwd=1)
+  abline(v = norm.mean, col = "blue") +
+  abline(v = norm.mean + norm.sd, lty = 2, col = "blue") +
+  abline(v = norm.mean - norm.sd, lty = 2, col = "blue")
+  }
+
+```
+
+
+####Normality test by taxon
+
+One way to examine the normality of data is to use the Snows test. For each taxon, this calculation tests the null hypothesis that the data comes from an exact normal population.
+
+This is a much less interesting null hypothesis than what we usually want, which is to know if the data come from a distribution that is similar enough to the normal to use normal theory inference.
+
+A value of P (p-value) less than 0.05 indicates that it is not possible to assume that the distribution of the data follows the normal distribution with a probability of 95%. 
+
+```{r 14, echo=FALSE, warning=FALSE}
+#Tests de normalité de Snows par variable 
+
+apply(dataset.BIO, 2, SnowsPenultimateNormalityTest)
+
+```
+
+
+####Taxa Occurences
+
+At how many sites does each taxon occur?
+
+First, the sorted list below shows the accreasing occurence of taxa in the dataset.
+
+After that, two graphs are proposed. The first graph (left) shows the distribution of taxa presence. The second graph (right) illustrates the log-transformed data. On these graphs, the mean occurence is shown by a solid line whereas standard deviation by dashed lines.
+
+En examination of these two graphs allows us to verify if the taxon dataset seams to comply to a normal distribution. If the distribution in the second graph is closer to a normal distribution, a log transformation could be useful.
+
+```{r 15, echo=FALSE, warning=FALSE}
+#Histograms for taxa occurences
+
+spe.pres <- apply(dataset.BIO > 0, 2, sum, na.rm = TRUE)
+spe.pres
+print("Sorted list of taxa occurences")
+sort(spe.pres)
+spe.pres.mean <- mean(spe.pres, na.rm = T)
+spe.pres.sd <- sd(spe.pres, na.rm = T)
+
+pres.n <- length(which(!is.na(spe.pres)))
+
+pres.bin <- ceiling((max(spe.pres)- min(spe.pres))/nclass.Sturges(spe.pres))
+
+graph.pres1 <- qplot(spe.pres,
+      geom = "histogram",
+      binwidth = pres.bin,
+      xlab = "Occurrence",
+      ylab = "Number of taxa",
+      main = "Number of occurrences",
+      fill = I('lightsteelblue1'),
+      color = I('black')) + 
+  geom_vline(xintercept = spe.pres.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(spe.pres.mean + spe.pres.sd, spe.pres.mean - spe.pres.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = spe.pres.mean, sd = spe.pres.sd, n = pres.n, bw = pres.bin),
+    lwd = 1,
+    col = 'red')
+
+graph.pres2 <- qplot(spe.pres,
+      geom = "histogram",
+      binwidth = pres.bin,
+      xlab = "Occurrence",
+      ylab = "Log(Number of taxa)",
+      main = "Number of occurrences",
+      fill = I('lightsteelblue1'),
+      color = I('black'),
+      log = 'y') + 
+  geom_vline(xintercept = spe.pres.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(spe.pres.mean + spe.pres.sd, spe.pres.mean - spe.pres.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = spe.pres.mean, sd = spe.pres.sd, n = pres.n, bw = pres.bin),
+    lwd = 1,
+    col = 'red')
+
+grid.arrange(graph.pres1, graph.pres2, ncol = 2)
+
+```
+
+
+The following graphs are similar to the previous ones but for relative frequencies.
+
+```{r 16, echo=FALSE, warning=FALSE}
+#Histograms for taxa relative frequencies
+
+spe.relf <- 100*spe.pres/nrow(dataset.BIO)
+spe.relf
+print("Sorted list of taxa relative frequency")
+round(sort(spe.relf), 1)
+spe.relf.mean <- mean(spe.relf)
+spe.relf.sd <- sd(spe.relf)
+
+relf.n <- length(which(!is.na(spe.relf)))
+
+relf.bin <- ceiling((max(spe.relf)- min(spe.relf))/nclass.Sturges(spe.relf))
+
+graph.relf1 <- qplot(spe.relf,
+      geom = "histogram",
+      binwidth = relf.bin,
+      xlab = "Frequency of occurrence (%)",
+      ylab = "Number of taxa",
+      main = "Taxa Relative Frequencies",
+      fill = I('lightsteelblue1'),
+      color = I('black')) + 
+  geom_vline(xintercept = spe.relf.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(spe.relf.mean + spe.relf.sd, spe.relf.mean - spe.relf.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = spe.pres.mean, sd = spe.pres.sd, n = relf.n, bw = relf.bin),
+    lwd = 1,
+    col = 'red')
+
+graph.relf2 <- qplot(spe.relf,
+      geom = "histogram",
+      binwidth = relf.bin,
+      xlab = "Frequency of occurrence (%)",
+      ylab = "Log(Number of taxa)",
+      main = "Taxa Relative Frequencies (log)",
+      fill = I('lightsteelblue1'),
+      color = I('black'),
+      log = "y") + 
+  geom_vline(xintercept = spe.relf.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(spe.relf.mean + spe.relf.sd, spe.relf.mean - spe.relf.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = spe.pres.mean, sd = spe.pres.sd, n = relf.n, bw = relf.bin),
+    lwd = 1,
+    col = 'red')
+
+grid.arrange(graph.relf1, graph.relf2, ncol = 2)
+
+```
+
+
+####Boxplots for taxa occurences
+
+The first boxplot (left) illustrates the distribution of occurrences calculated from the data file whereas the second (right) shows the distribution of occurrences calculated from the log transformed data file.
+
+
+
+```{r 17, echo=FALSE}
+#Boxplot for taxa occurences
+
+box.pres1 <- qplot(y = spe.pres, x = "", geom = "boxplot", ylab = "Occurrence", main = "Distribution of taxa occurences") + 
+  theme(plot.title = element_text(hjust = 0.5))
+box.pres2 <- qplot(y = spe.pres, x = "", geom = "boxplot", ylab = "Log(Occurrence)", main = "Distribution of taxa occurrences", log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(box.pres1, box.pres2, ncol = 2)
+
+```
+
+The following boxplots are similar to the previous but for relative frequencies
+
+```{r 18, echo=FALSE}
+#Boîtes à moustaches de fréquences relatives en taxons
+
+box.relf1 <- qplot(y = spe.relf, x = "", geom = "boxplot", ylab = "Occurrence (%)", main = "Distribution of taxa\nrelative frequency") + 
+  theme(plot.title = element_text(hjust = 0.5))
+box.relf2 <- qplot(y = spe.relf, x = "", geom = "boxplot", ylab = "Log(Occurrence (%))", main = "Distribution of taxa\nrelative frequency", log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(box.relf1, box.relf2, ncol = 2)
+
+```
+
+
+##Taxa Independence
+
+###Correlation matrix between taxa
+
+The following correlation matrix shows the relationship between all pairs of taxa. It allows to verify the presence of co-occurence between taxa. Only taxa present in more than 25% of the visits are shown. 
+
+```{r 19, echo=FALSE}
+#Correaltion matrix between taxa which frequency > 25%
+
+# Nouvelle méthode
+corrgram(Benthos25, lower.panel = panel.pts, upper.panel = panel.conf,
+         diag.panel = panel.density, main=paste("Taxa Covariance - for frequency >", FreqMin, "%"))
+
+# Ancienne méthode, jugée trop longue
+GGally::ggpairs(Benthos25, progress=TRUE)
+for (i in 1:ceiling(length(Benthos25) / 4)) {
+  for (j in 1:ceiling(length(Benthos25) / 4)) {
+    print(ggduo(Benthos25, columnsX = ((i * 4 - 3):(i * 4))[((i * 4 - 3):(i * 4)) <= length(Benthos25)], columnsY = ((j * 4 - 3):(j * 4))[((j * 4 - 3):(j * 4)) <= length(Benthos25)]))
+  }
+}
+```
+
+
+###Pearson Correlation Matrix
+
+The following correlation matrix illustrates the correlation strength that exists between two taxa by the intensity of the color. A correlation illustrated by the white color indicates a correlation force that tends to a value of 0 and a correlation illustrated by the dark blue color indicates a correlation force that tends to a value of 1. Pearson correlation values between taxa are shown in the lower left portion of the figure. This matrix also illustrates the proportion of non-zero abundance values that a taxon has with respect to all the abundance values observed in the latter. Only taxa present in more than 25% of the visits are shown.
+
+```{r 20, echo=FALSE}
+#Pearson Correlation Matrix - taxa with a frequency > 25%
+
+corrgram(Benthos25, order = FALSE, lower.panel = panel.cor, upper.panel = panel.pie, 
+         text.panel = panel.txt, main=paste("Taxa Covariance - for frequency >", FreqMin, "%"))
+
+```
+
+
+###Taxa Abundance through Time
+
+It could be interesting to look at the abundance of taxa through time to see dynamics or abrupt changes.
+
+Pour chaque taxon, the first graph (top left) shows the abundance value of the data by sampling years. The second graph (top right) illustrates the observed patterns of changes in abundance of individuals over time. The third graph (bottom left) illustrates future forecasts of changes in abundance of individuals over time. On this graph, the blue line corresponds to the expected average trend of changes over time, the dark gray zone corresponds to a confidence interval of 80% and the pale gray zone corresponds to a 95% confidence interval. The fourth graph (bottom right) illustrates time series autocorrelation (ACF). An autocorrelation value greater than the 95% confidence interval illustrated by the dotted line indicates a possible dependency between the variable and the time of year (time). For example, a certain value of abundance of a taxon observed in a given year could be explained by a certain event dating from a previous year (lag in time in years). It should be noted that the autocorrelation at offset time 0 is, by definition, equal to 1.
+
+```{r 21, echo=FALSE}
+#Temporal independence of taxa
+
+dataset.BIO2 <- left_join(dataset.BIO2, dataset.NAM2[,c("SampleId", "SampleDate")], by = "SampleId")
+
+#dataset.BIO2_bk <- dataset.BIO2
+#dataset.BIO2[is.na(dataset.BIO2)] <- 0
+
+for(i in 2:(ncol(dataset.BIO2)-5)){
+  par(mfrow = c(2, 2), mar = c(4,4,4,1))
+  graph.time <- plot(dataset.BIO2$SampleDate, dataset.BIO2[,i], xlab = "Year", ylab = "Abundance", main = paste("Temporal Abundance of\n", colnames(dataset.BIO2[i])))
+
+  graph.time2 <- ts(dataset.BIO2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  plot(graph.time2, xlab = "Year", ylab = "Abundance", main = paste("Prediction of Abundance of\n", colnames(dataset.BIO2[i])))
+
+  auto.arima <- auto.arima(graph.time2)
+  graph.auto.arima <- plot(forecast(auto.arima, h = 120))
+  
+  graph.lag <- acf(graph.time2, xlab = "Lag (years)", ylab = "Abundance", main = paste("ACF for", colnames(dataset.BIO2[i])), ylim = c(0, 1))
+}
+
+#dataset.BIO2[dataset.BIO2 == 0] <- NA
+#dataset.BIO2 <- dataset.BIO2_bk
+
+```
+
+The following results present the calculation of the Box-Ljung statistical test applied to each taxon and are complementary to the previous graphs. A value of P (p-value) lower than 0.05 indicates that the residual values of a variable depend on the period of the year (time).
+
+```{r 22, echo=FALSE}
+#Indépendance temporelle des taxons (suite)
+
+#dataset.BIO2_bk <- dataset.BIO2
+#dataset.BIO2[is.na(dataset.BIO2)] <- 0
+
+for(i in 2:(ncol(dataset.BIO2)-5)){
+  graph.time2 <- ts(dataset.BIO2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  auto.arima <- auto.arima(graph.time2)
+  box <- lapply(1:20, function(j) Box.test (resid(auto.arima), lag = j, type="Ljung"))
+  print(paste(colnames(dataset.BIO2[i])))  
+  print(box)
+}
+
+#dataset.BIO2 <- dataset.BIO2_bk
+
+```
+
+
+###Spatial Correlation
+
+The following results present the spatial autocorrelation results applied to each variable. A value of P (p-value) less than 0.05 makes it possible to assume that the spatial distribution of the values is subject to non-random spatial aggregation. When the value of P (p-value) is less than 0.05, a positive Moran index (Moran's I) indicates that the values are aggregated with each other while a negative Moran index indicates that the values are scattered between them.
+
+```{r 23, echo=FALSE}
+##Spatial indépendence of taxa
+
+#dataset.BIO2[is.na(dataset.BIO2)] <- 0
+
+bio.dists <- as.matrix(dist(cbind(dataset.BIO2$Latitude, dataset.BIO2$Longitude)))
+bio.dists[which(sapply(bio.dists, is.na))] <- 0 
+bio.dists.inv <- 1/bio.dists
+diag(bio.dists.inv) <- 0
+bio.dists.inv[is.infinite(bio.dists.inv)] <- 0
+lw <- mat2listw(bio.dists.inv)
+lwW <- nb2listw(lw$neighbours, glist=lw$weights, style="W", zero.policy = T)
+
+for (j in 2:(ncol(dataset.BIO2) - 5)) {
+  print(paste(colnames(dataset.BIO2[j])))
+  moran.test <- moran.test(dataset.BIO2[, j], lwW, alternative = "two.sided", zero.policy = T)
+  print(moran.test)
+}
+
+#dataset.BIO2 <- dataset.BIO2_bk
+
+```
+
+
+##Diversity
+
+###Diversity Metrics
+
+The following table presents the calculation of several diversity metrics per visit. 
+
+```{r 24, echo=FALSE}
+#Table for diversity metrics
+
+#Richness
+N0 <- rowSums(dataset.BIO > 0, na.rm = TRUE)
+
+#Shannon's entropy
+#dataset.BIO[is.na(dataset.BIO)] <- 0
+H <- diversity(dataset.BIO)
+
+#Shannon's index
+N1 <- exp(H)
+
+#Simpson's index
+N2 <- diversity(dataset.BIO, "inv")
+
+#Pielou's evenness
+J <- H/log(N0)
+
+#Shannon's evenness (Hill's ratio)
+E10 <- N1/N0
+
+#Simpson's evenness (Hill's ratio)
+E20 <- N2/N0
+
+#Table for diversity
+#(div <- data.frame(N0, H, N1, N2, E10, E20, J))
+#dataset.BIO[dataset.BIO == 0] <- NA
+
+div <- data.frame(N0, H, N1, N2, J, E10, E20, dataset.BIO2$Site_Date_Number)
+#div <- rownames_to_column(div, var = "rownames")
+#div <- left_join(div, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleId")
+#div$rownames <- NULL
+
+{div <- div[, c(8,1,2,3,4,5,6,7)]
+#div
+names(div)[1] <- "Site_Date_Visit"
+names(div)[2] <- "Richness"
+names(div)[3] <- "Shannon's entropy"
+names(div)[4] <- "Shannon's index"
+names(div)[5] <- "Simpson's index"
+names(div)[6] <- "Pielou's evenness"
+names(div)[7] <- "Shannon's evenness"
+names(div)[8] <- "Simpson's evenness"
+}
+
+datatable(div, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+grid.table(div)
+
+#rm(dataset.NAM2)
+```
+
+
+###Graphs for diversity
+
+
+```{r 25, echo=FALSE}
+#Histograms of Shannon's diversity index
+
+#N1
+#print("Ordre croissant des occurrences de la diversité de Shannon")
+#round(sort(N1), 1)
+N1.mean <- mean(N1)
+N1.sd <- sd(N1)
+
+N1.n <- length(which(!is.na(N1)))
+
+N1.bin <- ceiling((max(N1)- min(N1))/nclass.Sturges(N1))
+
+graph.N1.1 <- qplot(N1,
+      geom = "histogram",
+      binwidth = N1.bin,
+      xlab = "Shannon's diversity",
+      ylab = "Occurrence",
+      main = "Shannon's diversity\n(observed)",
+      fill = I('lightsteelblue1'),
+      color = I('black')) + 
+  geom_vline(xintercept = N1.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(N1.mean + N1.sd, N1.mean - N1.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = N1.mean, sd = N1.sd, n = N1.n, bw = N1.bin),
+    lwd = 1,
+    col = 'red')
+
+graph.N1.2 <- qplot(N1,
+      geom = "histogram",
+      binwidth = N1.bin,
+      xlab = "Shannon's diversity",
+      ylab = "Log(Occurrence)",
+      main = "Shannon's diversity\n(log-transformed)",
+      fill = I('lightsteelblue1'),
+      color = I('black'),
+      log = "y") + 
+  geom_vline(xintercept = N1.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(N1.mean + N1.sd, N1.mean - N1.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = N1.mean, sd = N1.sd, n = N1.n, bw = N1.bin),
+    lwd = 1,
+    col = 'red')
+
+grid.arrange(graph.N1.1, graph.N1.2, ncol = 2)
+
+#Histograms of Simpson's diversity index
+
+#N2
+#print("Ordre croissant des occurrences de la diversité de Simpson")
+#round(sort(N2), 1)
+N2.mean <- mean(N2)
+N2.sd <- sd(N2)
+
+N2.n <- length(which(!is.na(N2)))
+
+N2.bin <- ceiling((max(N2)- min(N2))/nclass.Sturges(N2))
+
+graph.N2.1 <- qplot(N2,
+      geom = "histogram",
+      binwidth = N2.bin,
+      xlab = "Simpson's diversity",
+      ylab = "Occurrence",
+      main = "Simpson's diversity\n(observed)",
+      fill = I('lightsteelblue1'),
+      color = I('black')) + 
+  geom_vline(xintercept = N2.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(N2.mean + N2.sd, N2.mean - N2.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = N2.mean, sd = N2.sd, n = N2.n, bw = N2.bin),
+    lwd = 1,
+    col = 'red')
+
+graph.N2.2 <- qplot(N2,
+      geom = "histogram",
+      binwidth = N2.bin,
+      xlab = "Simpson's diversity",
+      ylab = "Log(Occurrence)",
+      main = "Simpson's diversity\n(log-transformed)",
+      fill = I('lightsteelblue1'),
+      color = I('black'),
+      log = "y") + 
+  geom_vline(xintercept = N2.mean,
+              color = 'blue3', size = 1) +
+  geom_vline(xintercept = c(N2.mean + N2.sd, N2.mean - N2.sd),
+             color = 'blue3', 
+             size = 1,
+             linetype = 2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  stat_function(fun = function(x, mean, sd, n, bw){
+    n * bw * dnorm(x = x, mean = mean, sd = sd)},
+    args = list(mean = N2.mean, sd = N2.sd, n = N2.n, bw = N2.bin),
+    lwd = 1,
+    col = 'red')
+
+grid.arrange(graph.N2.1, graph.N2.2, ncol = 2)
+
+```
+
+
+
+## Saving the report
+
+```{r include=FALSE}
+render("CABIN_vv_biology.Rmd", c("pdf_document"))
+# "html_document", 
+```
+
+
+## Releases Notes
+**What's New, Updated, or Fixed in This Release**
+
+***
+![ACTION:](../../../Configuration/logo_new.png) New &nbsp;&nbsp;&nbsp;  ![ACTION:](../../../Configuration/logo_updated.png) Updated &nbsp;&nbsp;&nbsp;  ![ACTION:](../../../Configuration/logo_fixed.png) Fixed
+
+***
+
+**CABIN_vv_biology.Rmd Version 1.2 — August 13, 2019**
+
+![ACTION:](../../../Configuration/logo_updated.png)   **Update** --- Optimization of the code.
+
+
+**CABIN_vv_biology.Rmd Version 1.1 — February 14, 2018**
+
+![ACTION:](../../../Configuration/logo_updated.png)   **Update** --- Reduce the numbers of procedures and change their organisation.
+
+**CABIN_vv_biology.Rmd Version 1.0 — August 18, 2017**
+
+![ACTION:](../../../Configuration/logo_new.png)   **First version**.
+
+
+***
+
+Developped by [Martin Jean](mailto:martin.jean@canada.ca), Evelyne Paquette-Boisclair, and Eva Charbonneau-Bérubé
+
+

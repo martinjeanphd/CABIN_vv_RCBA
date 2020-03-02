@@ -1,0 +1,562 @@
+---
+date: '2017-11-01'
+output:
+  html_notebook:
+    df_print: paged
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+  word_document:
+    toc: yes
+version: '1.1'
+---
+
+| ![](../../../Configuration/gc_en.png)  |  ![](../../../Configuration/cabin_logo.png) |
+|:------------------------------------|--------------------------------------:|                            
+
+#CABIN VERIFICATION AND VALIDATION - HABITAT DATA
+
+*Environment and Climate Change Canada*
+
+*Analysis performed on `r Sys.time()`*
+
+***
+
+This report presents the results of the verification and validation of a CABIN habitat data file associated to the project **`r #paste(datasetName)`**.
+
+In this analysis, the habitat dataset is checked to answer the following question:
+  
+  + Do the habitat data reflect what were observed in the sites visited?
+
+This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.com). When you execute the code embedded in the notebook, the results will appear under the corresponding code. To do this, place your cursor inside a chunk (box which contains *R* code) and click the green arrow to the right of it named *Run Current Chunk* or press *Ctrl+Shift+Enter* (*Cmd+Shift+Enter* in *macOS*) on your keyboard. Repeat for each chunk. As the code contained in this notebook is executed, the results will appear under each of the corresponding chunks in this window. Once all commands are executed, click the *Preview* button at the top left of this window or press the *Ctrl+Shift+K* keys (*Cmd+Shift+K* in *macOS*). A new window will appear and will contain the report of these verification and validation results for the general CABIN data.
+
+
+##Requirements
+
+```{r include=FALSE}
+## Required Packages and Custom Functions
+source("../../../Required_packages.R")
+source("../../../Required_functions.R")
+
+
+## Project Preferences
+source("../../../Configuration/project_settings.R")
+
+```
+This notebook assumes that you have imported your data into *R* using the import notebook (CABIN_vv_import.Rmd).
+
+The dataset containing habitat data for this project is **`r if(is.data.frame(dataset.ENV)) "present" else "absent. Please open and execute the 'CABIN_vv_import.Rmd' notebook before using this notebook"`**.
+
+##Descriptive Statistics
+
+The data file contains `r {nrow(dataset.ENV)}` visits (lines) and `r {ncol(dataset.ENV)}` variables (columns).
+
+The following table presents a subset of the data.
+
+**Reading General Data**  
+
+`r head(dataset.ENV) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Does the file seem to have been read correctly?*
+> - *Are columns missing?*
+
+
+**List of visits present in the habitat data (ID from the CABIN database):**  
+
+`r rownames(dataset.ENV) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Compare the list above with the following table which shows the visits from all the data for this project.
+
+
+`r formattable(dataset.NAM, align = "c", row.names = TRUE)`
+
+
+**Variables List:**  
+
+`r colnames(dataset.ENV) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the variables above and make sure they are all present.
+
+
+###General Statistics
+
+The following table shows the main general parameters per variable. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable.
+
+
+**Table of General Statistics**  
+
+```{r echo=FALSE}
+
+#Table of General Statistics for Habitat Variable
+
+{summary.ENV <- as.data.frame(t(do.call(cbind, lapply(dataset.ENV, summary))))
+summary.ENV$Std.deviation <- apply(dataset.ENV, 2, sd, na.rm = T)
+summary.ENV$Length <- colSums(!is.na(dataset.ENV))
+summary.ENV$BinaryData <- sapply(dataset.ENV,function(x)length(unique(na.omit(x)))<=2)
+summary.ENV$NA.values <- colSums(is.na(dataset.ENV))
+summary.ENV$`NA's` <- NULL
+summary.ENV <- as.data.frame(t(summary.ENV))
+summary.ENV
+}
+formattable(summary.ENV, digits = 2, align = "c")
+
+```
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Examine statistics and identify, if present, anomalies with statistics.
+
+##Location of Habitat Data
+
+###Geographical Distribution of Habitat Variables
+
+The following graphs show the location (latitude and longitude) and the observed value for variables saved in the habitat data file.
+
+```{r, echo=FALSE, warning=FALSE}
+#Geographical Distribution of Habitat Variables
+
+dataset.ENV2 <- rownames_to_column(dataset.ENV, var = "rownames")
+dataset.GEN2 <- rownames_to_column(dataset.GEN, var = "rownames")
+if(!"Longitude" %in% colnames(dataset.ENV2)) {
+  dataset.ENV2 <- left_join(dataset.ENV2, dataset.GEN2[,c("rownames", "Longitude", "Latitude")], by = "rownames")
+}
+
+size <- dataset.ENV2[2:ncol(dataset.ENV2)]
+size[c(length(size)-2,length(size)-1, length(size))] <- NA
+
+for(i in 2:(ncol(dataset.ENV2)-3)){
+graph.geo.ab <- ggplot(dataset.ENV2, aes(Longitude, Latitude)) +
+  geom_point(shape = 21, aes(size = size[i-1])) +
+  ggtitle(paste("Geographical Distribution of variable\n", colnames(dataset.ENV2[i]))) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_size(range = c(1,10), name = "Value")
+graph.geo.ab
+print(graph.geo.ab)
+}
+
+#rm(size)
+#rm(dataset.GEN2)
+```
+
+###Map of Altitude
+
+The following interactive map shows La carte interactive suivante illustre la position des sites en fonction des coordonnées géographiques contenues dans le fichier de données ainsi que l'altitude par site. Cliquez sur le marqueur d'une visite pour indiquer l'altitude observée dans celle-ci.
+
+```{r, echo=FALSE, fig.height=5.5, fig.width=8.5, message=FALSE, include=TRUE}
+#Geographical distribution of altitude
+
+dataset.SPA2 <- rownames_to_column(dataset.SPA, var = "rownames")
+dataset.NAM2 <- rownames_to_column(dataset.NAM, var = "rownames")
+if(!"Site" %in% colnames(dataset.SPA2)) {
+  dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("rownames", "Site", "SampleDate", "SampleNumber")], by = "rownames")
+}
+dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleNumber)
+dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
+dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
+dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
+
+cabinPoints <- SpatialPointsDataFrame(coords = dataset.SPA[, 1:2], data = dataset.SPA)
+  
+getColor2 <- function(dataset.SPA2) {
+  sapply(dataset.SPA2$SampleDate, function(SampleDate) {
+  if(SampleDate <= "2005-12-31") {
+    "green"
+  } else if(SampleDate <= "2006-12-31") {
+    "yellow"
+  } else if(SampleDate <= "2007-12-31") {
+    "darkorange"
+  } else if(SampleDate <= "2008-12-31") {
+    "red"
+  } else if(SampleDate <= "2009-12-31") {
+    "pink"
+  } else if(SampleDate <= "2010-12-31") {
+    "blue"
+  } else if(SampleDate <= "2011-12-31") {
+    "darkgreen"
+  } else if(SampleDate <= "2012-12-31") {
+    "cyan"
+  } else if(SampleDate <= "2013-12-31") {
+    "deeppink"
+  } else if(SampleDate <= "2014-12-31") {
+    "lightblue"
+  } else if(SampleDate <= "2015-12-31") {
+    "lightseagreen"
+  } else if(SampleDate <= "2016-12-31") {
+    "darkviolet"
+  } else if(SampleDate <= "2017-12-31") {
+    "darkred"
+  } else if(SampleDate <= "2018-12-31") {
+    "cadetblue"
+  } else if(SampleDate <= "2019-12-31") {
+    "black"
+  } else if(SampleDate <= "2020-12-31") {
+    "gray"
+  } else {
+    "brown"
+  } })
+} 
+
+#dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d") 
+#dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%Y")
+
+  leaflet(data = dataset.SPA2) %>% addProviderTiles(providers$Esri.WorldTopoMap) %>% addCircleMarkers(~Longitude, ~Latitude, popup = paste( "Site_Year : ", dataset.SPA2$Site_Year, "<br>", "Altitude : ", dataset.ENV2$Altitude, "<br>"), label = (dataset.SPA2$Site_Year), radius = dataset.ENV2$Altitude, color = getColor2(dataset.SPA2), stroke = F, fillOpacity = 0.5, clusterOptions = markerClusterOptions()) %>% addLegend(
+  position = 'bottomright',
+  colors = palette(),
+  labels = palette(),
+  opacity = 1,
+  title = 'Legend')
+  
+rm(dataset.SPA2)
+
+```
+
+##Presence of Outliers
+
+###Dispersion of Observed Values
+
+The following scatterplots present the value of the continuous variable data observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Do data seem out of the ordinary?*
+
+```{r, echo=FALSE, warning=FALSE}
+#Scatterplots of observed values for habitat data
+
+dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, "_", dataset.NAM2$SampleDate, "_", dataset.NAM2$SampleNumber)
+if(!"Site_Date_Number" %in% colnames(dataset.ENV2)) {
+  dataset.ENV2 <- left_join(dataset.ENV2, dataset.NAM2[,c("rownames", "Site_Date_Number")], by = "rownames")
+}
+
+for(j in 2:(ncol(dataset.ENV2)-3)){
+  plot.ab <- ggplot(dataset.ENV2, aes(x = dataset.ENV2$Site_Date_Number, y = dataset.ENV2[,j])) +
+  geom_point() +
+  labs(y = "Value", x = "Visit") +
+  theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
+   scale_x_discrete(breaks = ifelse(!is.na(dataset.ENV2[,j]), dataset.ENV2$Site_Date_Number, ""), labels = ifelse(!is.na(dataset.ENV2[,j]), dataset.ENV2$Site_Date_Number, ""), na.value = NA) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Observed Values for", colnames(dataset.ENV2[j]), "per visit"))
+plot.ab
+print(plot.ab)
+}
+
+```
+
+
+###Frequency Distribution
+
+The following tables show the list of values observed by variable and their frequency within the habitat data file. These tables make it possible in particular to verify and validate the uniformity of the value naming for categorical variables observed in the data file. If the same value is listed twice in the same frequency table, it is possible that one of these values was written with one or more spaces before or after the word, which could explain the difference in the spelling of values that was detected by the software.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *For each of the following variables, check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Is naming consistent?*
+> - *Are frequencies consistent with reality?*
+
+
+
+##Presence of Outliers
+
+###Dispersion of Observed Values
+
+The following scatterplots present the value of the continuous variable data observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Do data seem out of the ordinary?*
+
+```{r, echo=FALSE, warning=FALSE}
+#Scatterplots of observed values
+
+dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, "_", dataset.NAM2$SampleDate, "_", dataset.NAM2$SampleNumber)
+#dataset.ENV2 <- left_join(dataset.ENV2, dataset.NAM2[,c("rownames", "Site_Date_Number")], by = "rownames")
+
+for(j in 2:(ncol(dataset.ENV2)-3)){
+plot.ab <- ggplot(dataset.ENV2, aes(x = dataset.ENV2$Site_Date_Number, y = dataset.ENV2[,j])) +
+  geom_point() +
+  labs(y = "Value", x = "Visit") +
+  theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
+   scale_x_discrete(breaks = ifelse(!is.na(dataset.ENV2[,j]), dataset.ENV2$Site_Date_Number, ""), labels = ifelse(!is.na(dataset.ENV2[,j]), dataset.ENV2$Site_Date_Number, ""), na.value = NA) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Distribution of Observed Values\nfor", colnames(dataset.ENV2[j]), "per visit"))
+plot.ab
+print(plot.ab)
+}
+
+```
+
+###Boxplots of Observed and Transformed Values
+
+The first boxplot (left) shows the distribution of continuous variable values observed in the data file, and the second box plot (right) shows the distribution of the logarithmic-transformed values.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Do data seem out of the ordinary?*
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplots of Observed and Transformed Values
+
+for(i in 2:(ncol(dataset.ENV2)-3)){
+box.ab.1 <- qplot(y = dataset.ENV2[,i], x = "", geom = "boxplot", ylab = colnames(dataset.ENV2[i])) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Observed Values"))
+box.ab.2 <- qplot(y = dataset.ENV2[,i], x = "", geom = "boxplot", ylab = paste("Log(", colnames(dataset.ENV2[i]),")"), log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Log Values"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(dataset.ENV2[i]))
+}
+
+```
+
+###Identification of Potential Outliers
+
+For each variable, the first boxplot (left) shows the distribution of continuous variable values observed in the dataset and the dispersion diagram (right) show the distribution of observed continuous variable values in the order in which they appear in this file. Data with identification by their identifier on the diagrams are potentially outliers contained in the dataset. The method used to identify potentially outliers is the interquantile range (*IQR*). The IQR is calculated as follows:
+
+`IQR(x) = quantile(x, 3/4) - quantile(x, 1/4)`
+
+
+Potential outliers are defined as values below *Q1 - 1,5 IQR* or above *Q3 + 1,5 IQR*.
+
+The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sample number for this visit.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the following graphs and put your attention on the points with a label (if present). Consider the following:*
+>
+> - *Are potential outliers truly aberrant?*
+
+
+```{r, echo=FALSE, warning=FALSE}
+#Identification of potential outliers
+
+for (j in 2:(ncol(dataset.ENV2)-3)) {
+  boxplot <- ggplot(data = dataset.ENV2, aes(x = "", y = dataset.ENV2[,j])) +
+    geom_boxplot() +
+    ylab("Value") +
+    xlab("") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Observed Values")) +
+    geom_text(aes(label = ifelse(dataset.ENV2[,j] < quantile(dataset.ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.ENV2[,j], na.rm = T)|dataset.ENV2[,j] > quantile(dataset.ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.ENV2[,j], na.rm = T), dataset.ENV2$Site_Date_Number, "")), hjust = -0.05, size = 3)
+
+  dotchart <- ggplot(data = dataset.ENV2, aes(y = seq(dataset.ENV2[,j]), x = dataset.ENV2[,j], na.rm = T)) +
+    geom_point(na.rm = T) +
+    ylab("Data Order") +
+    xlab("Value") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Observed Values")) +
+    geom_text(aes(label = ifelse(dataset.ENV2[,j] < quantile(dataset.ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.ENV2[,j], na.rm = T)|dataset.ENV2[,j] > quantile(dataset.ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.ENV2[,j], na.rm = T), dataset.ENV2$Site_Date_Number, "")), hjust = -0.05, nudge_y = 2, size = 3)
+        
+  grid.arrange(boxplot, dotchart, ncol = 2, top = colnames(dataset.ENV2[j]))
+}
+
+```
+
+The following list shows another way of identifying potential outliers contained in the data file for each variable. When the identifier of a data item is indicated therein, this indicates that this data represents potentially aberrant data contained in the data file. *""* indicates non-aberrant data and *NA* indicates missing values. The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sampling number.
+
+```{r, echo=FALSE}
+#Identification of Potential Outliers (part 2)
+
+for (j in 2:(ncol(dataset.ENV2)-3)) {
+print(colnames(dataset.ENV2[j]))
+list <- list(ifelse(dataset.ENV2[,j] < quantile(dataset.ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.ENV2[,j], na.rm = T) | dataset.ENV2[,j] > quantile(dataset.ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.ENV2[,j], na.rm = T), dataset.ENV2$Site_Date_Number, ""))
+print(list)
+}
+
+```
+##Data Normality 
+
+###Quantile-Quantile Diagrams and Frequency Histograms
+
+For each variable, the first graph (left) shows the observed distribution of variable values​by points and the theoretical normal distribution calculated from the parameters of the distribution observed by a straight line. The more the observed values are positioned along the line, the more they are distributed according to the normality.
+
+The second graph (middle) illustrates a frequency histogram of the observed values​taxon. This histogram also shows the average value per variable by a solid line and the standard deviation of the two variables by dotted lines.
+
+The third graph (right) illustrates the frequency distribution of the observed values per variable that are log-transformed. If the distribution of the data on this graph seems to be more like a normal distribution, a logarithmic transformation of the data might be useful. This histogram also illustrates the average value per variable by a solid line as well as the standard deviation of the variables by two dashed lines.
+
+```{r, echo=FALSE}
+#Quantile-Quantile diagrams and histograms
+
+#for (i in 1:ncol(dataset.ENV)){
+for (i in 1:28){
+norm.mean <- mean(which(!is.na(dataset.ENV[,i])))
+norm.sd <- sd(which(!is.na(dataset.ENV[,i])))
+norm.n <- length(which(!is.na(dataset.ENV[,i])))
+norm.bin <- ceiling(max(which(!is.na(dataset.ENV[,i])))- min(which(!is.na(dataset.ENV[,i])))/nclass.Sturges(which(!is.na(dataset.ENV[,i]))))
+
+par(mfrow = c(1,3), oma=c(1,1,2,1))
+
+qqnorm(which(!is.na(dataset.ENV[,i])), main = "Quantile-Quantile Diagram")
+qqline(which(!is.na(dataset.ENV[,i])),lty = 2)
+
+hist.ab <- hist(as.numeric(unlist(dataset.ENV[,i])), breaks = "Sturges", xlab = "Value", ylab = "Frequency", main = "Frequency Distribution")
+xfit <- seq(min(which(!is.na(dataset.ENV[,i]))), max(which(!is.na(dataset.ENV[,i]))), length=norm.n)
+yfit_density <- dnorm(xfit, mean = norm.mean, sd=norm.sd)
+yfit_freq <- yfit_density*diff(hist.ab$mids[1:2])*norm.n
+lines(xfit, yfit_freq, col="red", lwd=1)
+  abline(v = norm.mean, col = "blue") +
+  abline(v = norm.mean + norm.sd, lty = 2, col = "blue") +
+  abline(v = norm.mean - norm.sd, lty = 2, col = "blue")
+
+norm.mean.log <- mean(log(which(!is.na(dataset.ENV[,i]))))
+norm.sd.log <- sd(log(which(!is.na(dataset.ENV[,i]))))
+norm.n.log <- length(log(which(!is.na(dataset.ENV[,i]))))
+#norm.bin.log <- ceiling(max(log(which(!is.na(dataset.ENV[,i]))))- min(log(which(!is.na(dataset.ENV[,i]))))/nclass.Sturges(log(which(!is.na(dataset.ENV[,i])))))
+  
+hist.ab.2 <- tryCatch(hist(log(as.numeric(unlist(dataset.ENV[,i]))), breaks = "Sturges", xlab = "Log(Value)", ylab = "Frequency", main = "Frequency Distribution (log)"), error=function(e) plot.new())
+xfit <- seq(min(log(which(!is.na(dataset.ENV[,i])))), max(log(which(!is.na(dataset.ENV[,i])))), length=norm.n.log)
+yfit_density <- dnorm(xfit, mean = norm.mean.log, sd=norm.sd.log)
+yfit_freq <- yfit_density*diff(hist.ab.2$mids[1:2])*norm.n.log
+lines(xfit, yfit_freq, col="red", lwd=1)
+  abline(v = norm.mean.log, col = "blue") +
+  abline(v = norm.mean.log + norm.sd.log, lty = 2, col = "blue") +
+  abline(v = norm.mean.log - norm.sd.log, lty = 2, col = "blue")
+mtext(colnames(dataset.ENV[i]), cex = 1.2, outer = TRUE)
+
+  }
+
+```
+
+###Boxplots of Observed Values
+
+For each variable, the first boxplot (left) shows the distribution of observed values in the data file whereas the second boxplot (right) shows the distribution of observed values in the data file that has undergone logarithmic transformation.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplot of Observed Values for habitat variables
+
+for(i in 1:ncol(dataset.ENV)){
+box.ab.1 <- qplot(y = dataset.ENV[,i], x = "", geom = "boxplot", ylab = "Value") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Raw data"))
+box.ab.2 <- qplot(y = dataset.ENV[,i], x = "", geom = "boxplot", ylab = "Log(Value)", log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Log-transformed data"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(dataset.ENV[i]))
+}
+
+```
+
+###Normality Tests
+
+Les résultats suivants présentent le résultat obtenu par un test de Snows appliqué sur chaque variable du fichier de données. Une valeur de P (p-value) inférieure à 0.05 indique qu'il n'est pas possible de supposer que la distribution des données suit la loi normale avec une probabilité de 95%. 
+
+```{r, echo=FALSE, warning=FALSE}
+#Snows Normality Tests
+
+apply(dataset.ENV, 2, SnowsPenultimateNormalityTest)
+
+#A p-value below 0.05 indicates that it is not possible to consider the data follows a normal distribution as normal. 
+
+```
+
+##Collinearity of Variables
+
+###Scatterplot Matrix
+
+The following scatterplot matrix illustrates the relationship between pairs of variables. It helps to detect the presence of correlations between variables.
+
+```{r, echo=FALSE}
+#Scatterplot Matrix
+
+dataset.ENV[is.na(dataset.ENV)] <- 0
+
+AllS <- names(dataset.ENV)
+Env <- dataset.ENV[,AllS]
+
+PlotMatrix(Env, nrows = 3, ncols = 3, panel = panel.smooth)
+
+dataset.ENV[dataset.ENV == 0] <- NA
+
+```
+
+
+###Temporal Independence of Variables
+
+For each variable, the first graph (top left) shows the observed value of the data according to their sampling year. The second graph (top right) illustrates the observed trends in changes in data values over time. The third graph (bottom left) shows future forecasts of changes in values over time. On this graph, the blue line corresponds to the expected average trend of changes over time, the dark gray zone corresponds to a confidence interval of 80% and the pale gray zone corresponds to a 95% confidence interval. The fourth graph (bottom right) illustrates time series autocorrelation (ACF). An autocorrelation value greater than the 95% confidence interval illustrated by the dotted line indicates a possible dependency between the variable and the time of year (time). For example, a certain value of a variable observed in a given year could be explained by a certain event from a previous year (lag in time in years). It should be noted that the autocorrelation at offset time 0 is, by definition, equal to 1.
+
+**Beware that variables with a lot of missing values can interrupt this procedure.**
+
+```{r, echo=FALSE}
+#Temporal Independence of Variables
+
+dataset.ENV2 <- left_join(dataset.ENV2, dataset.NAM2[,c("rownames", "SampleDate")], by = "rownames")
+dataset.ENV2$StreamOrder <- NULL
+
+#dataset.ENV2[is.na(dataset.ENV2)] <- 0
+
+for(i in 2:(ncol(dataset.ENV2)-4)){
+  par(mfrow = c(2, 2), oma = c(1,1,2,1))
+  graph.time <- plot(dataset.ENV2$SampleDate, dataset.ENV2[,i], xlab = "Year", ylab = "Value", main = "Observed values")
+
+  graph.time2 <- ts(dataset.ENV2[,i], frequency = 12, start = c(2008-01-01), end = c(2013-01-01))
+  graph.time22 <- plot(graph.time2, xlab = "Year", ylab = "Value", main = "Expected values", ylim = c(min(graph.time2), max(graph.time2)))
+
+  auto.arima <- auto.arima(graph.time2)
+  graph.auto.arima <- plot(forecast(auto.arima, h = 120), main = "Forecast (ARIMA)")
+  
+  graph.lag <- acf(graph.time2, na.action = na.pass, xlab = "Lag (year)", ylab = "ACF", main = "Autocorrelation Function", ylim = c(0, 1))
+  
+  mtext(colnames(dataset.ENV2[i]), cex = 1.2, outer = TRUE)
+}
+
+#dataset.ENV2[dataset.ENV2 == 0] <- NA
+ 
+#rm(dataset.NAM2)
+
+```
+
+Below are the results of the Ljung-Box statistics test applied to each variable which confirming the results illustrated by the above graphs. A value of P (p-value) less than 0.05 makes it possible to assume that the residual values of a variable depend on the period of the year (time).
+
+```{r, echo=FALSE}
+#Temporal Indépendence of Variables (part II)
+
+dataset.ENV2[is.na(dataset.ENV2)] <- 0
+
+for(i in 2:(ncol(dataset.ENV2)-4)){
+  graph.time2 <- ts(dataset.ENV2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  auto.arima <- auto.arima(graph.time2)
+  box <- lapply(1:20, function(j) Box.test (resid(auto.arima), lag = j, type="Ljung"))
+  print(paste(colnames(dataset.ENV2[i])))  
+  print(box)
+}
+
+dataset.ENV2[dataset.ENV2 == 0] <- NA
+
+
+```
+
+
+##Releases Notes
+**What's New, Updated, or Fixed in This Release**
+
+
+***
+![ACTION:](../../../Configuration/logo_new.png) New &nbsp;&nbsp;&nbsp;  ![ACTION:](../../../Configuration/logo_updated.png) Updated &nbsp;&nbsp;&nbsp;  ![ACTION:](../../../Configuration/logo_fixed.png) Fixed
+
+***
+
+**CABIN_vv_habitat.Rmd Version 1.1 — November 1st, 2017**
+
+Added suggestions of actions to help in the verification and validation of habitat data. 
+
+![ACTION:](../../../Configuration/logo_new.png)   **Actions** --- Added suggestions of actions to help in the verification and validation of habitat data. 
+
+
+**CABIN_vv_habitat.Rmd Version 1.0 — August 18, 2017**
+
+![ACTION:](../../../Configuration/logo_new.png)   **First completed version**.
+
+
+***
+
+Developed by [Martin Jean](mailto:martin.jean@canada.ca) and Evelyne Paquette-Boisclair

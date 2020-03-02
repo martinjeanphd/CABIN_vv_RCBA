@@ -1,0 +1,915 @@
+---
+date: '2017-11-01'
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  html_notebook:
+    df_print: paged
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+  word_document:
+    toc: yes
+version: '1.1'
+---
+
+| ![](../../../Configuration/gc_en.png)  |  ![](../../../Configuration/cabin_logo.png) |
+|:------------------------------------|--------------------------------------:|                            
+
+#CABIN VERIFICATION AND VALIDATION - HABITAT DATA
+
+*Environment and Climate Change Canada*
+
+*Analysis performed on `r Sys.time()`*
+
+***
+
+This report presents the results of the verification and validation of a CABIN habitat data file associated to the project **`r #paste(analysisTitle)`**.
+
+In this analysis, the habitat dataset is checked to answer the following question:
+  
+  + Do the habitat data reflect what were observed in the sites visited?
+
+This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.com). When you execute the code embedded in the notebook, the results will appear under the corresponding code. To do this, place your cursor inside a chunk (box which contains *R* code) and click the green arrow to the right of it named *Run Current Chunk* or press *Ctrl+Shift+Enter* (*Cmd+Shift+Enter* in *macOS*) on your keyboard. Repeat for each chunk. As the code contained in this notebook is executed, the results will appear under each of the corresponding chunks in this window. Once all commands are executed, click the *Preview* button at the top left of this window or press the *Ctrl+Shift+K* keys (*Cmd+Shift+K* in *macOS*). A new window will appear and will contain the report of these verification and validation results for the general CABIN data.
+
+
+##Requirements
+
+```{r setup, include=FALSE}
+## Required Packages and Custom Functions
+source("../../../Required_packages.R")
+source("../../../Required_functions.R")
+
+
+## Project Preferences
+source("../../../Configuration/project_settings.R")
+
+
+```
+This notebook assumes that you have imported your data into *R* using the import notebook (CABIN_vv_import.Rmd).
+
+The dataset containing habitat data for this project is **`r if(is.data.frame(dataset.ENV)) "present" else "absent. Please open and execute the 'CABIN_vv_import.Rmd' notebook before using this notebook"`**.
+
+##Descriptive Statistics
+
+The data file contains `r {nrow(dataset.ENV)}` visits (lines) and `r {ncol(dataset.ENV)}` variables (columns).
+
+The following table presents a subset of the data.
+
+**Reading General Data**  
+
+`r datatable(dataset.ENV, filter = "top", rownames=F, options = list(scrollX = TRUE )) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Does the file seem to have been read correctly?*
+> - *Are columns missing?*
+
+
+**List of visits present in the habitat data (ID from the CABIN database):**  
+
+`r rownames(dataset.ENV) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Compare the list above with the following table which shows the visits from all the data for this project.
+
+
+`r datatable(dataset.NAM, filter = "top", rownames=F, options = list(scrollX = TRUE ))`
+
+
+**Variables List:**  
+
+`r colnames(dataset.ENV) `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the variables above and make sure they are all present.
+
+
+###General Statistics
+
+The following tables show the main general parameters per variable. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable. The first table presents numeric data, the second, binary, and the third, other or unidentified data.
+
+
+**Table of General Statistics**  
+
+```{r echo=FALSE}
+
+#Table of General Statistics for Habitat Variable
+
+{summary.ENV <- suppressWarnings(as.data.frame(t(do.call(cbind, lapply(dataset.ENV, summary)))))
+summary.ENV$Std.deviation <- apply(dataset.ENV, 2, sd, na.rm = T)
+summary.ENV$Length <- colSums(!is.na(dataset.ENV))
+summary.ENV$BinaryData <- sapply(dataset.ENV,function(x)length(unique(na.omit(x)))<=2)
+summary.ENV$NA.values <- colSums(is.na(dataset.ENV))
+summary.ENV$`NA's` <- NULL
+summary.ENV <- as.data.frame(t(summary.ENV))
+summary.ENV
+}
+datatable(summary.ENV[which(Var_Type[match(colnames(summary.ENV), Var_Type[,1]),2]=="Numeric")], filter = "top", rownames=T, options = list(scrollX = TRUE ))
+datatable(summary.ENV[which(Var_Type[match(colnames(summary.ENV), Var_Type[,1]),2]=="Binary")], filter = "top", rownames=T, options = list(scrollX = TRUE ))
+datatable(summary.ENV[which(Var_Type[match(colnames(summary.ENV), Var_Type[,1]),2]!="Numeric" & Var_Type[match(colnames(summary.ENV), Var_Type[,1]),2]!="Binary")], filter = "top", rownames=T, options = list(scrollX = TRUE ))
+
+```
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Examine statistics and identify, if present, anomalies with statistics.
+
+##Location of Habitat Data
+
+###Geographical Distribution of Habitat Variables
+
+The following graphs show the location (latitude and longitude) and the observed value for variables saved in the habitat data file.
+
+Numeric Data
+
+```{r, echo=FALSE, warning=FALSE}
+#Geographical Distribution of Habitat Variables
+
+dataset.GEN2 <- dataset.GEN
+dataset.ENV2 <- left_join(dataset.ENV2, dataset.GEN2[,c("SampleId", "Longitude", "Latitude")], by = "SampleId")
+
+Numeric_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[which(Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]=="Numeric")]
+
+for(i in 1:ncol(Numeric_ENV2)){
+graph.geo.ab <- ggplot(dataset.ENV2, aes(Longitude, Latitude)) +
+  geom_point(shape = 21, aes(size = (Numeric_ENV2[,i]))) + 
+  ggtitle(paste("Geographical Distribution of\n", colnames(Numeric_ENV2[i]))) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_size(range = c(1,10), name = "Value")
+graph.geo.ab
+print(graph.geo.ab)
+}
+
+rm(Numeric_ENV2)
+```
+
+Binary Data
+
+```{r}
+Binary_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[which(Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]=="Binary")]
+
+for(i in 1:ncol(Binary_ENV2)){
+graph.geo.ab <- ggplot(dataset.ENV2, aes(Longitude, Latitude)) +
+  geom_point(shape = 21, aes(size = (Binary_ENV2[,i]))) + 
+  ggtitle(paste("Geographical Distribution of\n", colnames(Binary_ENV2[i]))) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_size(range = c(1,10), name = "Value")
+graph.geo.ab
+print(graph.geo.ab)
+}
+
+rm(Binary_ENV2)
+```
+
+Other Data
+
+```{r}
+Other_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude, -SampleId))[which(Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude, -SampleId)), Var_Type[,1]),2]!="Numeric" & Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude, -SampleId)), Var_Type[,1]),2]!="Binary")]
+
+for(i in 1:ncol(Other_ENV2)){
+graph.geo.ab <- ggplot(dataset.ENV2, aes(Longitude, Latitude)) +
+  geom_point(shape = 21, aes(size = (Other_ENV2[,i]))) + 
+  ggtitle(paste("Geographical Distribution of\n", colnames(Other_ENV2[i]))) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_size(range = c(1,10), name = "Value")
+graph.geo.ab
+print(graph.geo.ab)
+
+}
+rm(Other_ENV2)
+
+```
+
+###Map of Altitude
+
+The following interactive map shows an the distribution of altitude. Click on a label for more info.
+
+```{r, echo=FALSE, fig.height=5.5, fig.width=8.5, message=FALSE, include=TRUE}
+#Geographical distribution of altitude
+
+dataset.SPA2 <- dataset.SPA
+dataset.NAM2 <- dataset.NAM
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate")], by = "SampleId")
+dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleId)
+dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
+dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
+dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
+
+cabinPoints <- SpatialPointsDataFrame(coords = dataset.SPA[which(!is.na(dataset.SPA[, 1]) & !is.na(dataset.SPA[,2])),1:2], data = dataset.SPA[which(!is.na(dataset.SPA[, 1]) & !is.na(dataset.SPA[,2])),])
+
+leaflet(data = dataset.SPA2) %>% addProviderTiles(providers$Esri.WorldTopoMap) %>% addCircleMarkers(~Longitude, ~Latitude, popup = paste( "Site_Year : ", dataset.SPA2$Site_Year, "<br>", "Altitude : ", dataset.ENV2$Altitude, "<br>"), label = (dataset.SPA2$Site_Year), color = getColor2(dataset.SPA2), stroke = F, fillOpacity = 0.5, clusterOptions = markerClusterOptions()) %>% addLegend(
+  position = 'bottomright',
+  colors = c("green", "yellow", "darkorange", "red", "pink", "blue", "darkgreen", "cyan", "deeppink", "lightblue", "lightseagreen", "darkviolet", "darkred", "cadetblue", "black", "gray", "white", "brown"),
+  labels = c("Pre-2006", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "Other"),
+  opacity = 1,
+  title = 'Legend')
+  
+rm(dataset.SPA2)
+
+```
+
+##Presence of Outliers
+
+###Dispersion of Observed Values
+
+The following scatterplots present the value of the continuous variable data observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Do data seem out of the ordinary?*
+
+```{r, echo=FALSE, warning=FALSE}
+#Scatterplots of observed values for habitat data
+
+dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, "_", dataset.NAM2$SampleDate, "_", dataset.NAM2$SampleId)
+dataset.ENV2 <- left_join(dataset.ENV2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleId")
+
+Numeric_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[,which(Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]=="Numeric" | colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)) %in% c("SampleId", "Site_Date_Number"))]
+
+for(j in 2:(ncol(Numeric_ENV2 %>% dplyr::select(-Site_Date_Number)))){
+plot.ab <- ggplot(Numeric_ENV2, aes(x = Numeric_ENV2$Site_Date_Number, y = Numeric_ENV2[,j])) +
+  geom_point() +
+  labs(y = "Value", x = "Visit") +
+  theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
+   scale_x_discrete(breaks = ifelse(!is.na(Numeric_ENV2[,j]), Numeric_ENV2$Site_Date_Number, ""), labels = ifelse(!is.na(Numeric_ENV2[,j]), Numeric_ENV2$Site_Date_Number, ""), na.value = NA) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Observed Values for\n", colnames(Numeric_ENV2[j])))
+plot.ab
+print(plot.ab)}
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+#Scatterplots of observed values for habitat data
+
+Binary_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[,which(Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]=="Binary" | colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)) %in% c("SampleId", "Site_Date_Number"))]
+
+for(j in 2:(ncol(Binary_ENV2 %>% dplyr::select(-Site_Date_Number)))){
+plot.ab <- ggplot(Binary_ENV2, aes(x = Binary_ENV2$Site_Date_Number, y = Binary_ENV2[,j])) +
+  geom_point() +
+  labs(y = "Value", x = "Visit") +
+  theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
+   scale_x_discrete(breaks = ifelse(!is.na(Binary_ENV2[,j]), Binary_ENV2$Site_Date_Number, ""), labels = ifelse(!is.na(Binary_ENV2[,j]), Binary_ENV2$Site_Date_Number, ""), na.value = NA) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Observed Values for\n", colnames(Binary_ENV2[j])))
+plot.ab
+print(plot.ab)}
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+#Scatterplots of observed values for habitat data
+
+Other_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[,which((Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]!="Numeric" & Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]!="Binary") | colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)) %in% c("SampleId", "Site_Date_Number"))]
+
+for(j in 2:(ncol(Other_ENV2 %>% dplyr::select(-Site_Date_Number)))){
+plot.ab <- ggplot(Other_ENV2, aes(x = Other_ENV2$Site_Date_Number, y = Other_ENV2[,j])) +
+  geom_point() +
+  labs(y = "Value", x = "Visit") +
+  theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
+   scale_x_discrete(breaks = ifelse(!is.na(Other_ENV2[,j]), Other_ENV2$Site_Date_Number, ""), labels = ifelse(!is.na(Other_ENV2[,j]), Other_ENV2$Site_Date_Number, ""), na.value = NA) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Observed Values for\n", colnames(Other_ENV2[j])))
+plot.ab
+print(plot.ab)}
+```
+
+###Boxplots of Observed and Transformed Values
+
+The first boxplot (left) shows the distribution of continuous variable values observed in the data file, and the second box plot (right) shows the distribution of the logarithmic-transformed values.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Do data seem out of the ordinary?*
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplots of Observed and Transformed Values
+
+for(i in 2:(ncol(Numeric_ENV2 %>% dplyr::select(-Site_Date_Number)))){
+box.ab.1 <- qplot(y = Numeric_ENV2[,i], x = "", geom = "boxplot", ylab = colnames(Numeric_ENV2[i])) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste(colnames(Numeric_ENV2[i]), "\n (raw data)"))
+box.ab.2 <- qplot(y = Numeric_ENV2[,i], x = "", geom = "boxplot", ylab = paste("Log(", colnames(Numeric_ENV2[i]),")"), log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste(colnames(Numeric_ENV2[i]), "\n(log-transformed data)"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(Numeric_ENV2[i]))
+}
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplots of Observed and Transformed Values
+
+for(i in 2:(ncol(Binary_ENV2 %>% dplyr::select(-Site_Date_Number)))){
+box.ab.1 <- qplot(y = Binary_ENV2[,i], x = "", geom = "boxplot", ylab = colnames(Binary_ENV2[i])) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste(colnames(Binary_ENV2[i]), "\n (raw data)"))
+box.ab.2 <- qplot(y = Binary_ENV2[,i], x = "", geom = "boxplot", ylab = paste("Log(", colnames(Binary_ENV2[i]),")"), log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste(colnames(Binary_ENV2[i]), "\n(log-transformed data)"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(Binary_ENV2[i]))
+}
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplots of Observed and Transformed Values
+
+for(i in 2:(ncol(Other_ENV2 %>% dplyr::select(-Site_Date_Number)))){
+box.ab.1 <- qplot(y = Other_ENV2[,i], x = "", geom = "boxplot", ylab = colnames(Other_ENV2[i])) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste(colnames(Other_ENV2[i]), "\n (raw data)"))
+box.ab.2 <- qplot(y = Other_ENV2[,i], x = "", geom = "boxplot", ylab = paste("Log(", colnames(Other_ENV2[i]),")"), log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste(colnames(Other_ENV2[i]), "\n(log-transformed data)"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(Other_ENV2[i]))
+}
+
+```
+
+###Identification of Potential Outliers
+
+For each variable, the first boxplot (left) shows the distribution of continuous variable values observed in the dataset and the dispersion diagram (right) show the distribution of observed continuous variable values in the order in which they appear in this file. Data with identification by their identifier on the diagrams are potentially outliers contained in the dataset. The method used to identify potentially outliers is the interquantile range (*IQR*). The IQR is calculated as follows:
+
+`IQR(x) = quantile(x, 3/4) - quantile(x, 1/4)`
+
+
+Potential outliers are defined as values below *Q1 - 1,5 IQR* or above *Q3 + 1,5 IQR*.
+
+The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sample number for this visit.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the following graphs and put your attention on the points with a label (if present). Consider the following:*
+>
+> - *Are potential outliers truly aberrant?*
+
+
+```{r, echo=FALSE, warning=FALSE}
+#Identification of potential outliers
+
+for (j in 2:(ncol(Numeric_ENV2)-2)) {
+  boxplot <- ggplot(data = Numeric_ENV2, aes(x = "", y = Numeric_ENV2[,j])) +
+    geom_boxplot() +
+    ylab("Value") +
+    xlab("") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Boxplot for\n", colnames(Numeric_ENV2[j]))) +
+    geom_text(aes(label = ifelse(Numeric_ENV2[,j] < quantile(Numeric_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Numeric_ENV2[,j], na.rm = T)|Numeric_ENV2[,j] > quantile(Numeric_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Numeric_ENV2[,j], na.rm = T), Numeric_ENV2$Site_Date_Number, "")), hjust = -0.05, size = 3)
+
+  dotchart <- ggplot(data = Numeric_ENV2, aes(y = seq(Numeric_ENV2[,j]), x = Numeric_ENV2[,j], na.rm = T)) +
+    geom_point(na.rm = T) +
+    ylab("Data Order") +
+    xlab("Value") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Distribution of Observed Values for", colnames(Numeric_ENV2[j]))) +
+    geom_text(aes(label = ifelse(Numeric_ENV2[,j] < quantile(Numeric_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Numeric_ENV2[,j], na.rm = T)|Numeric_ENV2[,j] > quantile(Numeric_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Numeric_ENV2[,j], na.rm = T), Numeric_ENV2$Site_Date_Number, "")), hjust = -0.05, nudge_y = 2, size = 3)
+        
+  grid.arrange(boxplot, dotchart, ncol = 2)
+}
+```
+
+```{r, echo=FALSE, warning=FALSE}
+#Identification of potential outliers
+
+for (j in 2:(ncol(Binary_ENV2)-2)) {
+  boxplot <- ggplot(data = Binary_ENV2, aes(x = "", y = Binary_ENV2[,j])) +
+    geom_boxplot() +
+    ylab("Value") +
+    xlab("") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Boxplot for\n", colnames(Binary_ENV2[j]))) +
+    geom_text(aes(label = ifelse(Binary_ENV2[,j] < quantile(Binary_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Binary_ENV2[,j], na.rm = T)|Binary_ENV2[,j] > quantile(Binary_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Binary_ENV2[,j], na.rm = T), Binary_ENV2$Site_Date_Number, "")), hjust = -0.05, size = 3)
+
+  dotchart <- ggplot(data = Binary_ENV2, aes(y = seq(Binary_ENV2[,j]), x = Binary_ENV2[,j], na.rm = T)) +
+    geom_point(na.rm = T) +
+    ylab("Data Order") +
+    xlab("Value") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Distribution of Observed Values for", colnames(Binary_ENV2[j]))) +
+    geom_text(aes(label = ifelse(Binary_ENV2[,j] < quantile(Binary_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Binary_ENV2[,j], na.rm = T)|Binary_ENV2[,j] > quantile(Binary_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Binary_ENV2[,j], na.rm = T), Binary_ENV2$Site_Date_Number, "")), hjust = -0.05, nudge_y = 2, size = 3)
+        
+  grid.arrange(boxplot, dotchart, ncol = 2)
+}
+```
+
+```{r, echo=FALSE, warning=FALSE}
+#Identification of potential outliers
+
+for (j in 2:(ncol(Other_ENV2 %>% dplyr::select(-Site_Date_Number)))) {
+  boxplot <- ggplot(data = Other_ENV2, aes(x = "", y = Other_ENV2[,j])) +
+    geom_boxplot() +
+    ylab("Value") +
+    xlab("") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Boxplot for\n", colnames(Other_ENV2[j]))) +
+    geom_text(aes(label = ifelse(Other_ENV2[,j] < quantile(Other_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Other_ENV2[,j], na.rm = T)|Other_ENV2[,j] > quantile(Other_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Other_ENV2[,j], na.rm = T), Other_ENV2$Site_Date_Number, "")), hjust = -0.05, size = 3)
+
+  dotchart <- ggplot(data = Other_ENV2, aes(y = seq(Other_ENV2[,j]), x = Other_ENV2[,j], na.rm = T)) +
+    geom_point(na.rm = T) +
+    ylab("Data Order") +
+    xlab("Value") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Distribution of Observed Values for", colnames(Other_ENV2[j]))) +
+    geom_text(aes(label = ifelse(Other_ENV2[,j] < quantile(Other_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Other_ENV2[,j], na.rm = T)|Other_ENV2[,j] > quantile(Other_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Other_ENV2[,j], na.rm = T), Other_ENV2$Site_Date_Number, "")), hjust = -0.05, nudge_y = 2, size = 3)
+        
+  grid.arrange(boxplot, dotchart, ncol = 2)
+}
+```
+
+The following list shows another way of identifying potential outliers contained in the data file for each variable. When the identifier of a data item is indicated therein, this indicates that this data represents potentially aberrant data contained in the data file. *""* indicates non-aberrant data and *NA* indicates missing values. The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sampling number.
+
+```{r, echo=FALSE}
+#Identification of Potential Outliers (part 2)
+
+for (j in 2:(ncol(Numeric_ENV2 %>% dplyr::select(-Site_Date_Number)))) {
+cat(colnames(Numeric_ENV2[j]), "\n")
+Active_Frame_Num_Env <- data.frame(ifelse(is.na(Numeric_ENV2[,j]), "", ifelse(Numeric_ENV2[,j] < quantile(Numeric_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Numeric_ENV2[,j], na.rm = T) | Numeric_ENV2[,j] > quantile(Numeric_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Numeric_ENV2[,j], na.rm = T), Numeric_ENV2$Site_Date_Number, "")))
+Active_Frame_Num_Env["Is NA"] = list(ifelse(is.na(Numeric_ENV2[,j]), "Yes", "No"))
+colnames(Active_Frame_Num_Env) <- c("Site, Date and Number")
+write.table(Active_Frame_Num_Env[Active_Frame_Num_Env$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Num_Env[Active_Frame_Num_Env$"Site, Date and Number" != "",][[1]]), "\n\n")}
+
+```
+
+```{r, echo=FALSE}
+#Identification of Potential Outliers (part 2)
+
+for (j in 2:(ncol(Binary_ENV2 %>% dplyr::select(-Site_Date_Number)))) {
+cat(colnames(Binary_ENV2[j]), "\n")
+Active_Frame_Bin_Env <- data.frame(ifelse(is.na(Binary_ENV2[,j]), "", ifelse(Binary_ENV2[,j] < quantile(Binary_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Binary_ENV2[,j], na.rm = T) | Binary_ENV2[,j] > quantile(Binary_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Binary_ENV2[,j], na.rm = T), Binary_ENV2$Site_Date_Number, "")))
+Active_Frame_Bin_Env["Is NA"] = list(ifelse(is.na(Binary_ENV2[,j]), "Yes", "No"))
+colnames(Active_Frame_Bin_Env) <- c("Site, Date and Number")
+write.table(Active_Frame_Bin_Env[Active_Frame_Bin_Env$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Bin_Env[Active_Frame_Bin_Env$"Site, Date and Number" != "",][[1]]), "\n\n")}
+
+```
+
+```{r, echo=FALSE}
+#Identification of Potential Outliers (part 2)
+
+for (j in 2:(ncol(Other_ENV2 %>% dplyr::select(-Site_Date_Number)))) {
+cat(colnames(Other_ENV2[j]), "\n")
+Active_Frame_Other_Env <- data.frame(ifelse(is.na(Other_ENV2[,j]), "", ifelse(Other_ENV2[,j] < quantile(Other_ENV2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(Other_ENV2[,j], na.rm = T) | Other_ENV2[,j] > quantile(Other_ENV2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(Other_ENV2[,j], na.rm = T), Other_ENV2$Site_Date_Number, "")))
+Active_Frame_Other_Env["Is NA"] = list(ifelse(is.na(Other_ENV2[,j]), "Yes", "No"))
+colnames(Active_Frame_Other_Env) <- c("Site, Date and Number")
+write.table(Active_Frame_Other_Env[Active_Frame_Other_Env$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Other_Env[Active_Frame_Other_Env$"Site, Date and Number" != "",][[1]]), "\n\n")}
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+#Identification of Missing Values
+
+for (j in 2:(ncol(Numeric_ENV2 %>% dplyr::select(-Site_Date_Number)))) {
+cat(colnames(Numeric_ENV2[j]), "\n")
+Active_Frame_Num_Env <- data.frame(ifelse(is.na(Numeric_ENV2[,j]), Numeric_ENV2$Site_Date_Number, ""))
+Active_Frame_Num_Env["Is NA"] = list(ifelse(is.na(Numeric_ENV2[,j]), "Yes", "No"))
+colnames(Active_Frame_Num_Env) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Num_Env[Active_Frame_Num_Env$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Num_Env[Active_Frame_Num_Env$"Site, Date and Number" != "",][[1]]), "\n\n")}
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+#Identification of Missing Values
+
+for (j in 2:(ncol(Binary_ENV2 %>% dplyr::select(-Site_Date_Number)))) {
+cat(colnames(Binary_ENV2[j]), "\n")
+Active_Frame_Bin_Env <- data.frame(ifelse(is.na(Binary_ENV2[,j]), Binary_ENV2$Site_Date_Number, ""))
+Active_Frame_Bin_Env["Is NA"] = list(ifelse(is.na(Binary_ENV2[,j]), "Yes", "No"))
+colnames(Active_Frame_Bin_Env) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Bin_Env[Active_Frame_Bin_Env$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Bin_Env[Active_Frame_Bin_Env$"Site, Date and Number" != "",][[1]]), "\n\n")}
+
+```
+
+```{r, echo=FALSE, eval=FALSE}
+#Identification of Missing Values
+
+for (j in 2:(ncol(Other_ENV2 %>% dplyr::select(-Site_Date_Number)))) {
+cat(colnames(Other_ENV2[j]), "\n")
+Active_Frame_Other_Env <- data.frame(ifelse(is.na(Other_ENV2[,j]), Other_ENV2$Site_Date_Number, ""))
+Active_Frame_Other_Env["Is NA"] = list(ifelse(is.na(Other_ENV2[,j]), "Yes", "No"))
+colnames(Active_Frame_Other_Env) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Other_Env[Active_Frame_Other_Env$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Other_Env[Active_Frame_Other_Env$"Site, Date and Number" != "",][[1]]), "\n\n")}
+
+```
+
+##Data Normality 
+
+###Quantile-Quantile Diagrams and Frequency Histograms
+
+For each variable, the first graph (left) shows the observed distribution of variable values by points and the theoretical normal distribution calculated from the parameters of the distribution observed by a straight line. The more the observed values are positioned along the line, the more they are distributed according to the normality.
+
+The second graph (middle) illustrates a frequency histogram of the observed values taxon. This histogram also shows the average value per variable by a solid line and the standard deviation of the two variables by dotted lines.
+
+The third graph (right) illustrates the frequency distribution of the observed values per variable that are log-transformed. If the distribution of the data on this graph seems to be more like a normal distribution, a logarithmic transformation of the data might be useful. This histogram also illustrates the average value per variable by a solid line as well as the standard deviation of the variables by two dashed lines.
+
+```{r, echo=FALSE} 
+#Quantile-Quantile diagrams and histograms
+
+ norm.bin <- vector(length=ncol(Numeric_ENV2))
+ for (i in 2:ncol(Numeric_ENV2 %>% dplyr::select(-Site_Date_Number))){
+ 	norm.mean <- mean(Numeric_ENV2[,i], na.rm=T)
+ 	norm.sd <- sd(Numeric_ENV2[,i], na.rm=T)
+ 	norm.n <- length(which(!is.na(Numeric_ENV2[,i])))
+ 	norm.bin[i] <- ceiling((max(Numeric_ENV2[,i], na.rm=T) - min(Numeric_ENV2[,i],na.rm=T)) /nclass.Sturges(which(!is.na(Numeric_ENV2[,i]))))
+
+ 	if(norm.bin[i]>1){
+
+ 	par(mfrow = c(1,3), oma=c(1,1,2,1))
+
+ 	qqnorm(which(!is.na(Numeric_ENV2[,i])), main = "Quantile-Quantile Diagram")
+ 	qqline(which(!is.na(Numeric_ENV2[,i])),lty = 2)
+
+ 	hist.ab <- hist(as.numeric(unlist(Numeric_ENV2[,i])), breaks = "Sturges", xlab = "Value", ylab = "Frequency", main = "Frequency Distribution")
+ 	xfit <- seq(min(which(!is.na(Numeric_ENV2[,i]))), max(which(!is.na(Numeric_ENV2[,i]))), length=norm.n)
+ 	yfit_density <- dnorm(xfit, mean = norm.mean, sd=norm.sd)
+ 	yfit_freq <- yfit_density*diff(hist.ab$mids[1:2])*norm.n
+ 	lines(xfit, yfit_freq, col="red", lwd=1)
+   		abline(v = norm.mean, col = "blue") +
+   		abline(v = norm.mean + norm.sd, lty = 2, col = "blue") +
+   		abline(v = norm.mean - norm.sd, lty = 2, col = "blue")
+
+ 	norm.mean.log <- mean(log(which(!is.na(Numeric_ENV2[,i]))))
+ 	norm.sd.log <- sd(log(which(!is.na(Numeric_ENV2[,i]))))
+ 	norm.n.log <- length(log(which(!is.na(Numeric_ENV2[,i]))))
+ 	norm.bin.log <- ceiling(max(log(which(!is.na(Numeric_ENV2[,i]))))- min(log(which(!is.na(Numeric_ENV2[,i]))))/nclass.Sturges(log(which(!is.na(Numeric_ENV2[,i])))))
+
+ 	hist.ab.2 <- hist(log(as.numeric(unlist(Numeric_ENV2[,i]))), breaks = "Sturges", xlab = "Log(Value)", ylab = "Frequency", main = "Frequency Distribution (log)")
+ 	xfit <- seq(min(log(which(!is.na(Numeric_ENV2[,i])))), max(log(which(!is.na(Numeric_ENV2[,i])))), length=norm.n.log)
+ 	yfit_density <- dnorm(xfit, mean = norm.mean.log, sd=norm.sd.log)
+ 	yfit_freq <- yfit_density*diff(hist.ab.2$mids[1:2])*norm.n.log
+ 	lines(xfit, yfit_freq, col="red", lwd=1)
+   		abline(v = norm.mean.log, col = "blue") +
+   		abline(v = norm.mean.log + norm.sd.log, lty = 2, col = "blue") +
+   		abline(v = norm.mean.log - norm.sd.log, lty = 2, col = "blue")
+   	mtext(colnames(Numeric_ENV2[i]), cex = 1.2, outer = TRUE)}}
+```
+
+```{r, echo=FALSE} 
+#Quantile-Quantile diagrams and histograms
+
+ norm.bin <- vector(length=ncol(Binary_ENV2))
+ for (i in 2:ncol(Binary_ENV2 %>% dplyr::select(-Site_Date_Number))){
+ 	norm.mean <- mean(Binary_ENV2[,i], na.rm=T)
+ 	norm.sd <- sd(Binary_ENV2[,i], na.rm=T)
+ 	norm.n <- length(which(!is.na(Binary_ENV2[,i])))
+ 	norm.bin[i] <- ceiling((max(Binary_ENV2[,i], na.rm=T) - min(Binary_ENV2[,i],na.rm=T)) /nclass.Sturges(which(!is.na(Binary_ENV2[,i]))))
+
+ 	if(norm.bin[i]>1){
+
+ 	par(mfrow = c(1,3), oma=c(1,1,2,1))
+
+ 	qqnorm(which(!is.na(Binary_ENV2[,i])), main = "Quantile-Quantile Diagram")
+ 	qqline(which(!is.na(Binary_ENV2[,i])),lty = 2)
+
+ 	hist.ab <- hist(as.numeric(unlist(Binary_ENV2[,i])), breaks = "Sturges", xlab = "Value", ylab = "Frequency", main = "Frequency Distribution")
+ 	xfit <- seq(min(which(!is.na(Binary_ENV2[,i]))), max(which(!is.na(Binary_ENV2[,i]))), length=norm.n)
+ 	yfit_density <- dnorm(xfit, mean = norm.mean, sd=norm.sd)
+ 	yfit_freq <- yfit_density*diff(hist.ab$mids[1:2])*norm.n
+ 	lines(xfit, yfit_freq, col="red", lwd=1)
+   		abline(v = norm.mean, col = "blue") +
+   		abline(v = norm.mean + norm.sd, lty = 2, col = "blue") +
+   		abline(v = norm.mean - norm.sd, lty = 2, col = "blue")
+
+ 	norm.mean.log <- mean(log(which(!is.na(Binary_ENV2[,i]))))
+ 	norm.sd.log <- sd(log(which(!is.na(Binary_ENV2[,i]))))
+ 	norm.n.log <- length(log(which(!is.na(Binary_ENV2[,i]))))
+ 	norm.bin.log <- ceiling(max(log(which(!is.na(Binary_ENV2[,i]))))- min(log(which(!is.na(Binary_ENV2[,i]))))/nclass.Sturges(log(which(!is.na(Binary_ENV2[,i])))))
+
+ 	hist.ab.2 <- hist(log(as.numeric(unlist(Binary_ENV2[,i]))), breaks = "Sturges", xlab = "Log(Value)", ylab = "Frequency", main = "Frequency Distribution (log)")
+ 	xfit <- seq(min(log(which(!is.na(Binary_ENV2[,i])))), max(log(which(!is.na(Binary_ENV2[,i])))), length=norm.n.log)
+ 	yfit_density <- dnorm(xfit, mean = norm.mean.log, sd=norm.sd.log)
+ 	yfit_freq <- yfit_density*diff(hist.ab.2$mids[1:2])*norm.n.log
+ 	lines(xfit, yfit_freq, col="red", lwd=1)
+   		abline(v = norm.mean.log, col = "blue") +
+   		abline(v = norm.mean.log + norm.sd.log, lty = 2, col = "blue") +
+   		abline(v = norm.mean.log - norm.sd.log, lty = 2, col = "blue")
+   	mtext(colnames(Binary_ENV2[i]), cex = 1.2, outer = TRUE)}}
+```
+
+```{r, echo=FALSE} 
+#Quantile-Quantile diagrams and histograms
+
+ norm.bin <- vector(length=ncol(Other_ENV2))
+ for (i in 2:ncol(Other_ENV2 %>% dplyr::select(-Site_Date_Number))){
+ 	norm.mean <- mean(Other_ENV2[,i], na.rm=T)
+ 	norm.sd <- sd(Other_ENV2[,i], na.rm=T)
+ 	norm.n <- length(which(!is.na(Other_ENV2[,i])))
+ 	norm.bin[i] <- ceiling((max(Other_ENV2[,i], na.rm=T) - min(Other_ENV2[,i],na.rm=T)) /nclass.Sturges(which(!is.na(Other_ENV2[,i]))))
+
+ 	if(norm.bin[i]>1){
+
+ 	par(mfrow = c(1,3), oma=c(1,1,2,1))
+
+ 	qqnorm(which(!is.na(Other_ENV2[,i])), main = "Quantile-Quantile Diagram")
+ 	qqline(which(!is.na(Other_ENV2[,i])),lty = 2)
+
+ 	hist.ab <- hist(as.numeric(unlist(Other_ENV2[,i])), breaks = "Sturges", xlab = "Value", ylab = "Frequency", main = "Frequency Distribution")
+ 	xfit <- seq(min(which(!is.na(Other_ENV2[,i]))), max(which(!is.na(Other_ENV2[,i]))), length=norm.n)
+ 	yfit_density <- dnorm(xfit, mean = norm.mean, sd=norm.sd)
+ 	yfit_freq <- yfit_density*diff(hist.ab$mids[1:2])*norm.n
+ 	lines(xfit, yfit_freq, col="red", lwd=1)
+   		abline(v = norm.mean, col = "blue") +
+   		abline(v = norm.mean + norm.sd, lty = 2, col = "blue") +
+   		abline(v = norm.mean - norm.sd, lty = 2, col = "blue")
+
+ 	norm.mean.log <- mean(log(which(!is.na(Other_ENV2[,i]))))
+ 	norm.sd.log <- sd(log(which(!is.na(Other_ENV2[,i]))))
+ 	norm.n.log <- length(log(which(!is.na(Other_ENV2[,i]))))
+ 	norm.bin.log <- ceiling(max(log(which(!is.na(Other_ENV2[,i]))))- min(log(which(!is.na(Other_ENV2[,i]))))/nclass.Sturges(log(which(!is.na(Other_ENV2[,i])))))
+
+ 	hist.ab.2 <- hist(log(as.numeric(unlist(Other_ENV2[,i]))), breaks = "Sturges", xlab = "Log(Value)", ylab = "Frequency", main = "Frequency Distribution (log)")
+ 	xfit <- seq(min(log(which(!is.na(Other_ENV2[,i])))), max(log(which(!is.na(Other_ENV2[,i])))), length=norm.n.log)
+ 	yfit_density <- dnorm(xfit, mean = norm.mean.log, sd=norm.sd.log)
+ 	yfit_freq <- yfit_density*diff(hist.ab.2$mids[1:2])*norm.n.log
+ 	lines(xfit, yfit_freq, col="red", lwd=1)
+   		abline(v = norm.mean.log, col = "blue") +
+   		abline(v = norm.mean.log + norm.sd.log, lty = 2, col = "blue") +
+   		abline(v = norm.mean.log - norm.sd.log, lty = 2, col = "blue")
+   	mtext(colnames(Other_ENV2[i]), cex = 1.2, outer = TRUE)
+
+   }
+ }
+```
+
+###Boxplots of Observed Values
+
+For each variable, the first boxplot (left) shows the distribution of observed values in the data file whereas the second boxplot (right) shows the distribution of observed values in the data file that has undergone logarithmic transformation.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplot of Observed Values for habitat variables
+
+for(i in 2:ncol(Numeric_ENV2 %>% dplyr::select(-Site_Date_Number))){
+box.ab.1 <- qplot(y = Numeric_ENV2[,i], x = "", geom = "boxplot", ylab = "Value") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Raw data"))
+box.ab.2 <- qplot(y = Numeric_ENV2[,i], x = "", geom = "boxplot", ylab = "Log(Value)", log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Log-transformed data"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(Numeric_ENV2[i]))}
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplot of Observed Values for habitat variables
+
+for(i in 2:ncol(Binary_ENV2 %>% dplyr::select(-Site_Date_Number))){
+box.ab.1 <- qplot(y = Binary_ENV2[,i], x = "", geom = "boxplot", ylab = "Value") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Raw data"))
+box.ab.2 <- qplot(y = Binary_ENV2[,i], x = "", geom = "boxplot", ylab = "Log(Value)", log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Log-transformed data"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(Binary_ENV2[i]))}
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Boxplot of Observed Values for habitat variables
+
+for(i in 1:ncol(Other_ENV2 %>% dplyr::select(-Site_Date_Number))){
+box.ab.1 <- qplot(y = Other_ENV2[,i], x = "", geom = "boxplot", ylab = "Value") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Raw data"))
+box.ab.2 <- qplot(y = Other_ENV2[,i], x = "", geom = "boxplot", ylab = "Log(Value)", log = "y") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Log-transformed data"))
+
+grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(Other_ENV2[i]))}
+```
+
+###Normality Tests
+
+Les résultats suivants présentent le résultat obtenu par un test de Snows appliqué sur chaque variable du fichier de données. Une valeur de P (p-value) inférieure à 0.05 indique qu'il n'est pas possible de supposer que la distribution des données suit la loi normale avec une probabilité de 95%. 
+
+```{r, echo=FALSE, warning=FALSE}
+#Snows Normality Tests
+
+apply(Numeric_ENV2, 2, SnowsPenultimateNormalityTest)
+apply(Binary_ENV2, 2, SnowsPenultimateNormalityTest)
+apply(Other_ENV2, 2, SnowsPenultimateNormalityTest)
+
+#A p-value below 0.05 indicates that it is not possible to consider the data follows a normal distribution as normal. 
+
+```
+
+##Collinearity of Variables
+
+###Scatterplot Matrix
+
+The following scatterplot matrix illustrates the relationship between pairs of variables. It helps to detect the presence of correlations between variables.
+
+```{r, echo=FALSE}
+#Scatterplot Matrix
+
+Numeric_ENV2_bk <- Numeric_ENV2
+Numeric_ENV2[is.na(Numeric_ENV2)] <- 0
+Numeric_ENV2$SampleId <- NULL
+Numeric_ENV2$Site_Date_Number <- NULL
+
+ifelse(ncol(Numeric_ENV2)>=20, numb_scatter <- 20, numb_scatter <-ncol(Numeric_ENV2))
+
+GGally::ggpairs(Numeric_ENV2[,1:numb_scatter])
+
+for(i in 1:ceiling(length(Numeric_ENV2[,1:numb_scatter])/4)){for(j in 1:ceiling(length(Numeric_ENV2[,1:numb_scatter])/4)){print(ggduo(Numeric_ENV2[,1:numb_scatter], columnsX=((i*4-3):(i*4))[((i*4-3):(i*4))<=length(Numeric_ENV2[,1:numb_scatter])], columnsY=((j*4-3):(j*4))[((j*4-3):(j*4))<=length(Numeric_ENV2[,1:numb_scatter])]))}}
+
+Numeric_ENV2 <- Numeric_ENV2_bk
+```
+
+```{r, echo=FALSE}
+#Scatterplot Matrix
+
+Binary_ENV2_bk <- Binary_ENV2
+Binary_ENV2[is.na(Binary_ENV2)] <- 0
+Binary_ENV2$SampleId <- NULL
+Binary_ENV2$Site_Date_Number <- NULL
+
+ifelse(ncol(Binary_ENV2)>=20, numb_scatter <- 20, numb_scatter <-ncol(Binary_ENV2))
+
+GGally::ggpairs(Binary_ENV2[,1:numb_scatter])
+
+for(i in 1:ceiling(length(Binary_ENV2[,1:numb_scatter])/4)){for(j in 1:ceiling(length(Binary_ENV2[,1:numb_scatter])/4)){print(ggduo(Binary_ENV2[,1:numb_scatter], columnsX=((i*4-3):(i*4))[((i*4-3):(i*4))<=length(Binary_ENV2[,1:numb_scatter])], columnsY=((j*4-3):(j*4))[((j*4-3):(j*4))<=length(Binary_ENV2[,1:numb_scatter])]))}}
+
+Binary_ENV2 <- Binary_ENV2_bk
+```
+
+```{r, echo=FALSE}
+#Scatterplot Matrix
+
+Other_ENV2_bk <- Other_ENV2
+Other_ENV2[is.na(Other_ENV2)] <- 0
+Other_ENV2$SampleId <- NULL
+Other_ENV2$Site_Date_Number <- NULL
+
+ifelse(ncol(Other_ENV2)>=20, numb_scatter <- 20, numb_scatter <-ncol(Other_ENV2))
+GGally::ggpairs(Other_ENV2[,1:numb_scatter])
+
+for(i in 1:ceiling(length(Other_ENV2[,1:numb_scatter])/4)){for(j in 1:ceiling(length(Other_ENV2[,1:numb_scatter])/4)){print(ggduo(Other_ENV2[,1:numb_scatter], columnsX=((i*4-3):(i*4))[((i*4-3):(i*4))<=length(Other_ENV2[,1:numb_scatter])], columnsY=((j*4-3):(j*4))[((j*4-3):(j*4))<=length(Other_ENV2[,1:numb_scatter])]))}}
+
+Other_ENV2 <- Other_ENV2_bk
+
+```
+
+###Temporal Independence of Variables
+
+For each variable, the first graph (top left) shows the observed value of the data according to their sampling year. The second graph (top right) illustrates the observed trends in changes in data values over time. The third graph (bottom left) shows future forecasts of changes in values over time. On this graph, the blue line corresponds to the expected average trend of changes over time, the dark gray zone corresponds to a confidence interval of 80% and the pale gray zone corresponds to a 95% confidence interval. The fourth graph (bottom right) illustrates time series autocorrelation (ACF). An autocorrelation value greater than the 95% confidence interval illustrated by the dotted line indicates a possible dependency between the variable and the time of year (time). For example, a certain value of a variable observed in a given year could be explained by a certain event from a previous year (lag in time in years). It should be noted that the autocorrelation at offset time 0 is, by definition, equal to 1.
+
+```{r, echo=FALSE}
+#Temporal Independence of Variables
+
+dataset.ENV2 <- left_join(dataset.ENV2, dataset.NAM2[,c("SampleId", "SampleDate")], by = "SampleId")
+
+Numeric_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[,which(Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]=="Numeric" | colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)) %in% c("SampleId", "SampleDate"))]
+
+Numeric_ENV2_bk <- Numeric_ENV2
+Numeric_ENV2[is.na(Numeric_ENV2)] <- 0
+
+for(i in 2:(ncol(Numeric_ENV2)-2)){
+  par(mfrow = c(2, 2), mar = c(1,1,2,1))
+  graph.time <- plot(Numeric_ENV2$SampleDate, Numeric_ENV2[,i], xlab = "Year", ylab = "Value", main = "Observed values")
+
+  graph.time2 <- ts(Numeric_ENV2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  plot(graph.time2, xlab = "Year", ylab = "Value", main = "Expected values")
+
+  auto.arima <- auto.arima(graph.time2)
+  graph.auto.arima <- plot(forecast(auto.arima, h = 120), main = "Forecast (ARIMA)")
+  
+  graph.lag <- acf(graph.time2, xlab = "Lag (year)", ylab = "ACF", main = "Autocorrelation Function", ylim = c(0, 1))
+}
+
+Numeric_ENV2 <- Numeric_ENV2_bk
+ 
+#rm(dataset.NAM2)
+
+```
+
+```{r, echo=FALSE}
+#Temporal Independence of Variables
+
+Binary_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[,which(Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]=="Binary" | colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)) %in% c("SampleId", "SampleDate"))]
+
+Binary_ENV2_bk <- Binary_ENV2
+Binary_ENV2[is.na(Binary_ENV2)] <- 0
+
+for(i in 2:(ncol(Binary_ENV2)-2)){
+  par(mfrow = c(2, 2), mar = c(1,1,2,1))
+  graph.time <- plot(Binary_ENV2$SampleDate, Binary_ENV2[,i], xlab = "Year", ylab = "Value", main = "Observed values")
+
+  graph.time2 <- ts(Binary_ENV2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  plot(graph.time2, xlab = "Year", ylab = "Value", main = "Expected values")
+
+  auto.arima <- auto.arima(graph.time2)
+  graph.auto.arima <- plot(forecast(auto.arima, h = 120), main = "Forecast (ARIMA)")
+  
+  graph.lag <- acf(graph.time2, xlab = "Lag (year)", ylab = "ACF", main = "Autocorrelation Function", ylim = c(0, 1))
+}
+
+Binary_ENV2 <- Binary_ENV2_bk
+```
+
+```{r, echo=FALSE}
+#Temporal Independence of Variables
+
+Other_ENV2 <- (dplyr::select(dataset.ENV2, -Longitude, -Latitude))[,which((Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]!="Numeric" & Var_Type[match(colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)), Var_Type[,1]),2]!="Binary") | colnames(dataset.ENV2 %>% dplyr::select(-Longitude, -Latitude)) %in% c("SampleId", "SampleDate"))]
+
+Other_ENV2_bk <- Other_ENV2
+Other_ENV2[is.na(Other_ENV2)] <- 0
+
+for(i in 2:(ncol(Other_ENV2)-2)){
+  par(mfrow = c(2, 2), mar = c(1,1,2,1))
+  graph.time <- plot(Other_ENV2$SampleDate, Other_ENV2[,i], xlab = "Year", ylab = "Value", main = "Observed values")
+
+  graph.time2 <- ts(Other_ENV2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  plot(graph.time2, xlab = "Year", ylab = "Value", main = "Expected values")
+
+  auto.arima <- auto.arima(graph.time2)
+  graph.auto.arima <- plot(forecast(auto.arima, h = 120), main = "Forecast (ARIMA)")
+  
+  graph.lag <- acf(graph.time2, xlab = "Lag (year)", ylab = "ACF", main = "Autocorrelation Function", ylim = c(0, 1))
+}
+
+Other_ENV2 <- Other_ENV2_bk
+```
+
+Below are the results of the Ljung-Box statistics test applied to each variable which confirming the results illustrated by the above graphs. A value of P (p-value) less than 0.05 makes it possible to assume that the residual values of a variable depend on the period of the year (time).
+
+```{r, echo=FALSE}
+#Temporal Indépendence of Variables (part II)
+
+Numeric_ENV2[is.na(Numeric_ENV2)] <- 0
+
+for(i in 2:(ncol(Numeric_ENV2)-2)){
+  graph.time2 <- ts(Numeric_ENV2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  auto.arima <- auto.arima(graph.time2)
+  box <- lapply(1:20, function(j) Box.test (resid(auto.arima), lag = j, type="Ljung"))
+  print(paste(colnames(Numeric_ENV2[i])))  
+  print(box)}
+
+Numeric_ENV2 <- Numeric_ENV2_bk
+```
+
+```{r, echo=FALSE}
+#Temporal Indépendence of Variables (part II)
+
+Binary_ENV2[is.na(Binary_ENV2)] <- 0
+
+for(i in 2:(ncol(Binary_ENV2)-2)){
+  graph.time2 <- ts(Binary_ENV2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  auto.arima <- auto.arima(graph.time2)
+  box <- lapply(1:20, function(j) Box.test (resid(auto.arima), lag = j, type="Ljung"))
+  print(paste(colnames(Binary_ENV2[i])))  
+  print(box)
+}
+
+Binary_ENV2 <- Binary_ENV2_bk
+```
+
+```{r, echo=FALSE}
+#Temporal Indépendence of Variables (part II)
+
+Other_ENV2[is.na(Other_ENV2)] <- 0
+
+for(i in 2:(ncol(Other_ENV2)-2)){
+  graph.time2 <- ts(Other_ENV2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
+  auto.arima <- auto.arima(graph.time2)
+  box <- lapply(1:20, function(j) Box.test (resid(auto.arima), lag = j, type="Ljung"))
+  print(paste(colnames(Other_ENV2[i])))  
+  print(box)}
+
+Other_ENV2 <- Other_ENV2_bk
+```
+
+##Releases Notes
+**What's New, Updated, or Fixed in This Release**
+
+
+***
+![ACTION:](../../../Configuration/logo_new.png) New &nbsp;&nbsp;&nbsp;  ![ACTION:](../../../Configuration/logo_updated.png) Updated &nbsp;&nbsp;&nbsp;  ![ACTION:](../../../Configuration/logo_fixed.png) Fixed
+
+***
+
+**CABIN_vv_habitat.Rmd Version 1.1 — November 1st, 2017**
+
+Added suggestions of actions to help in the verification and validation of habitat data. 
+
+![ACTION:](../../../Configuration/logo_new.png)   **Actions** --- Added suggestions of actions to help in the verification and validation of habitat data. 
+
+
+**CABIN_vv_habitat.Rmd Version 1.0 — August 18, 2017**
+
+![ACTION:](../../../Configuration/logo_new.png)   **First completed version**.
+
+
+***
+
+Developed by [Martin Jean](mailto:martin.jean@canada.ca) and Evelyne Paquette-Boisclair

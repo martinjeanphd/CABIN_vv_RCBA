@@ -1,0 +1,262 @@
+---
+date: '2017-09-27'
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  html_notebook:
+    df_print: paged
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+  word_document:
+    toc: yes
+version: '1.1'
+---
+
+| ![](../../../Configuration/gc_en.png)  |  ![](../../../Configuration/cabin_logo.png) |
+|:------------------------------------|--------------------------------------:|                            
+
+
+
+#CABIN VERIFICATION AND VALIDATION - SPATIAL DATA
+
+*Environment and Climate change Canada*
+
+*Analysis performed on `r Sys.time()`*
+
+***
+
+```{r include=FALSE}
+## Required Packages and Custom Functions
+source("../../../Required_packages.R")
+source("../../../Required_functions.R")
+
+
+## Project Preferences
+source("../../../Configuration/project_settings.R")
+
+```
+
+This report presents the results for verification and validation of a CABIN spatial data file associated to the project **`r paste(datasetName)`**.
+
+In this analysis, the spatial dataset is checked to answer the following question:
+  
+  + Do the spatial coordinates of the dataset correspond to the locations where visits were done?
+
+This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.com). When you execute the code embedded in the notebook, the results will appear under the corresponding code. To do this, place your cursor inside a chunk (box which contains *R* code) and click the green arrow to the right of it named *Run Current Chunk* or press *Ctrl+Shift+Enter* (*Cmd+Shift+Enter* in *macOS*) on your keyboard. Repeat for each chunk. As the code contained in this notebook is executed, the results will appear under each of the corresponding chunks in this window. Once all commands are executed, click the *Preview* button at the top left of this window or press the *Ctrl+Shift+K* keys (*Cmd+Shift+K* in *macOS*). A new window will appear and will contain the report of these verification and validation results for the spatial CABIN data.
+
+
+##Requirements
+
+This notebook assumes that you have imported your data into *R* using the import notebook (CABIN_vv_import.Rmd).
+
+The dataset containing spatial data for this project is **`r if(is.data.frame(dataset.SPA)) "present" else "absent. Please open and execute the 'CABIN_vv_import.Rmd' notebook before running this notebook"`**.
+
+##Descriptive Statistics
+
+The data file contains `r {nrow(dataset.SPA)}` visits (rows) and `r {ncol(dataset.SPA)}` variables (columns).
+
+The following table presents a subset of the data.
+
+<!-- `r print(dataset.SPA) ` -->
+
+**List of visits present in the general data (ID from the CABIN database):**  
+
+
+`r dataset.SPA$SampleId `
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Compare the list above with the following table which shows the visits from all the data for this project.
+
+`r datatable(dataset.NAM, filter = "top", rownames=F, options = list(scrollX = TRUE ))`
+
+**Variables List :**  
+
+`r colnames(dataset.SPA) `
+
+
+###General Statistics
+
+The following table shows the general statistics of the spatial coordinates from the dataset. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable.
+
+
+**Table of General Statistics**  
+
+```{r, echo=FALSE, warning=FALSE}
+
+#Table of General Statistics
+
+{summary.SPA <- as.data.frame(t(do.call(cbind, lapply(dataset.SPA, summary))))
+summary.SPA$Std.deviation <- apply(dataset.SPA, 2, sd, na.rm = T)
+summary.SPA$Length <- colSums(!is.na(dataset.SPA))
+summary.SPA$BinaryData <- sapply(dataset.SPA,function(x)length(unique(na.omit(x)))<=2)
+summary.SPA$NA.values <- colSums(is.na(dataset.SPA))
+summary.SPA$`NA's` <- NULL
+summary.SPA <- as.data.frame(t(summary.SPA))
+summary.SPA$GPSDatum <- NULL
+}
+datatable(summary.SPA, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+
+```
+
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Examine statistics and identify, if present, anomalies with statistics.
+
+
+##Presence of Outliers
+
+###Sites Location
+
+The following interactive map illustrates the location of the visits based on the geographic coordinates in the dataset. Click on a label to see more info.
+
+```{r, echo=FALSE, include=TRUE, fig.width = 8.5, fig.height = 5.5, warning=F, message=F}
+#Map of visits
+
+dataset.SPA2 <- dataset.SPA
+dataset.NAM2 <- dataset.NAM
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate")], by = "SampleId")
+dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleId)
+dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
+dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
+dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
+
+cabinPoints <- SpatialPointsDataFrame(coords = dataset.SPA[which(!is.na(dataset.SPA[, 1]) & !is.na(dataset.SPA[,2])),1:2], data = dataset.SPA[which(!is.na(dataset.SPA[, 1]) & !is.na(dataset.SPA[,2])),])
+
+leaflet(data = dataset.SPA2[, c("Longitude", "Latitude")]) %>% addProviderTiles(providers$Esri.WorldTopoMap) %>%
+  addCircleMarkers(~Longitude, ~Latitude, popup = paste("Site_Year:", dataset.SPA2$Site_Year), label = dataset.SPA2$Site_Year, color = getColor2(dataset.SPA2), stroke = F, fillOpacity = 0.5, clusterOptions = markerClusterOptions()) %>% addLegend(
+  position = 'bottomright',
+  colors = c("green", "yellow", "darkorange", "red", "pink", "blue", "darkgreen", "cyan", "deeppink", "lightblue", "lightseagreen", "darkviolet", "darkred", "cadetblue", "black", "gray", "white", "brown"),
+  labels = c("Pre-2006", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "Other"),
+  opacity = 1,
+  title = 'Légende')
+
+rm(dataset.NAM2)
+```
+
+
+###Dispersion of Observed Values
+
+The following scatterplots present the value of the spatial coordinates observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
+
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Do data seem out of the ordinary?*
+
+```{r, echo=FALSE, warning=FALSE}
+#Scatterplots of observed values
+
+for(j in 1:2){
+plot.ab <- ggplot(dataset.SPA2, aes(x = dataset.SPA2$Site_Date_Number, y = dataset.SPA2[,j])) +
+  geom_point(aes(text=sprintf("Test", dataset.SPA2$Site_Date_Number))) +
+  labs(y = colnames(dataset.SPA2[j]), x = "Visit") +
+  theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
+   scale_x_discrete(breaks = "", labels = "", na.value = NA) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste("Observed values for", colnames(dataset.SPA2[j]), "per visit"))
+plot.ab
+print(plot.ab)
+}
+
+```
+
+
+###Identification of Potential Outliers
+
+The first boxplot (left) shows the distribution of continuous variable values observed in the dataset and the dispersion diagram (right) show the distribution of observed continuous variable values in the order in which they appear in this file. Data with identification by their identifier on the diagrams are potentially outliers contained in the dataset. The method used to identify potentially outliers is the interquantile range (*IQR*). The IQR is calculated as follows:
+
+`IQR(x) = quantile(x, 3/4) - quantile(x, 1/4)`
+
+
+Potential outliers are defined as values below *Q1 - 1,5 IQR* or above *Q3 + 1,5 IQR*.
+
+The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sample number for this visit.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the following graphs and put your attention on points with a label (if present). Consider the following:*
+>
+> - *Are potential outliers truly aberrant?*
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+#Identification of potential outliers
+
+for (j in 1:2) {
+  boxplot <- ggplot(data = dataset.SPA2, aes(x = "", y = dataset.SPA2[,j])) +
+    geom_boxplot() +
+    ylab(colnames(dataset.SPA2[j])) +
+    xlab("") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Distribution of Observed Values\nfor", colnames(dataset.SPA2[j]))) +
+    geom_text(aes(label = ifelse(dataset.SPA2[,j] < quantile(dataset.SPA2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.SPA2[,j], na.rm = T)|dataset.SPA2[,j] > quantile(dataset.SPA2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.SPA2[,j], na.rm = T), dataset.SPA2$Site_Date_Number, "")), hjust = -0.05, size = 3)
+
+  dotchart <- ggplot(data = dataset.SPA2, aes(y = seq(dataset.SPA2[,j]), x = dataset.SPA2[,j], na.rm = T)) +
+    geom_point(na.rm = T) +
+    ylab("Data Order") +
+    xlab(colnames(dataset.SPA2[j])) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste("Distribution of Observed Values\nfor", colnames(dataset.SPA2[j]))) +
+    geom_text(aes(label = ifelse(dataset.SPA2[,j] < quantile(dataset.SPA2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.SPA2[,j], na.rm = T)|dataset.SPA2[,j] > quantile(dataset.SPA2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.SPA2[,j], na.rm = T), dataset.SPA2$Site_Date_Number, "")), hjust = -0.05, nudge_y = 2, size = 3)
+        
+  grid.arrange(boxplot, dotchart, ncol = 2)
+}
+
+```
+
+The following list shows another way of identifying potential outliers contained in the dataset for each variable. When the identifier of a data item is indicated therein, this indicates that this data represents potentially aberrant data contained in the data file. *""* indicates non-aberrant data and *NA* indicates missing values. The identifier of the visit corresponds to the name of the site from which the data originated, its sampling date and the sampling number.
+
+```{r, echo=FALSE}
+##Identification of potential outliers (part 2)
+
+for (j in 1:2) {
+cat(colnames(dataset.SPA2[j]), "\n")
+Active_Frame_Spatial <- data.frame(ifelse(is.na(dataset.SPA2[,j]), "", ifelse(dataset.SPA2[,j] < quantile(dataset.SPA2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.SPA2[,j], na.rm = T) | dataset.SPA2[,j] > quantile(dataset.SPA2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.SPA2[,j], na.rm = T), dataset.SPA2$Site_Date_Number, "")))
+Active_Frame_Spatial["Is NA"] = list(ifelse(is.na(dataset.SPA2[,j]), "Yes", "No"))
+colnames(Active_Frame_Spatial) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Spatial[Active_Frame_Spatial$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Spatial[Active_Frame_Spatial$"Site, Date and Number" != "",][[1]]), "\n\n")
+}
+
+```
+
+```{r, echo=FALSE}
+##Identification of potential outliers (part 2)
+
+for (j in 1:2) {
+cat(colnames(dataset.SPA2[j]), "\n")
+Active_Frame_Spatial <- data.frame(ifelse(is.na(dataset.SPA2[,j]), dataset.SPA2$Site_Date_Number, ""))
+Active_Frame_Spatial["Is NA"] = list(ifelse(is.na(dataset.SPA2[,j]), "Yes", "No"))
+colnames(Active_Frame_Spatial) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Spatial[Active_Frame_Spatial$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Number of Potential Outliers:", length(Active_Frame_Spatial[Active_Frame_Spatial$"Site, Date and Number" != "",][[1]]), "\n\n")
+}
+
+```
+
+##Releases Notes
+**What's New, Updated, or Fixed in This Release**
+
+***
+![ACTION:](../../../Configuration/logo_new.png) New
+![ACTION:](../../../Configuration/logo_updated.png) Updated 
+![ACTION:](../../../Configuration/logo_fixed.png) Fixed
+
+***
+
+**CABIN_vv_spatial.Rmd Version 1.1 — September 27, 2017**
+
+![ACTION:](../../../Configuration/logo_new.png)   **Actions** --- Added suggestions of actions to help in the verification and validation of spatial data. 
+
+**CABIN_vv_spatial.Rmd Version 1.0 — August 18, 2017**
+
+![ACTION:](../../../Configuration/logo_new.png)   **First completed version**.
+
+
+
+***
+
+Developed by [Martin Jean](mailto:martin.jean@canada.ca) and Evelyne Paquette-Boisclair

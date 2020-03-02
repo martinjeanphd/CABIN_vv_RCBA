@@ -1,0 +1,536 @@
+---
+title: "CABIN Import R Markdown File"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '4'
+  html_notebook:
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  word_document:
+    toc: yes
+date: '2019-05-09'
+version: '2.01'
+---
+
+| ![](../../../Configuration/gc_en.png)  |  ![](../../../Configuration/cabin_logo.png) |
+|:------------------------------------|--------------------------------------:|                            
+
+
+#CABIN DATA IMPORT
+
+*Version 2.01*
+
+*Environment and Climate Change Canada*
+
+*Imported at `r Sys.time()`*
+
+***
+
+
+```{r setup, include=FALSE}
+## Required Packages and Custom Functions
+source("../../../Required_packages.R")
+getwd()
+source("../../../Required_functions.R")
+
+## Project Preferencesà
+source("../../../Configuration/project_settings.R")
+#options(device = windows)
+```
+
+This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.com). When you execute the code embedded in the notebook, the results will appear under the corresponding code.
+
+This report presents the results of import into R of CABIN data files. Once imported into R, this data can be verified and validated using the other R notebooks provided.
+
+##Setting Basic Parameters
+
+###Analysis title
+
+```{r include=FALSE}
+# Run code as is and define a title for this analysis, and platform you are using.
+
+analysisTitle <- svDialogs::dlgInput("Enter analysis title:", default = "Test", Sys.info()["analysisTitle"])$res
+if(is.null(analysisTitle) | length(analysisTitle) == 0) {analysisTitle = "Test"} else {if(analysisTitle == "NA") {analysisTitle <- "Test"}}
+
+Language <- "English"
+
+#Platform <- "Mac-Linux"
+#Platform <- svDialogs::dlgInput("Enter your platform:", default = "Windows", Sys.info()["Platform"])$res
+#if(is.null(Platform) | length(Platform) == 0) {Platform = "Windows"} else {if(Platform == "NA") {
+Platform <- "Windows"#}}
+
+```
+
+This report deals with data import for project **`r paste(analysisTitle)`**.
+
+###CSV format settings
+
+It is important to define how your csv files are built so that your data is imported correctly. The acronym [CSV](http://en.wikipedia.org/wiki/Comma-separated_values), which means * Comma-separated values *, refers to an open computer format representing tabular data as comma-separated values. This format has never really been the subject of a formal specification.
+
+A CSV file is a text file, as opposed to so-calle
+d "binary" formats. Each line of the text corresponds to a row of the table and the commas correspond to the separations between the columns. The comma-separated text segments thus correspond to the contents of the cells in the table. A line is an ordered sequence of characters terminated by a line break character (CRLF), the last line being exempt.
+
+Text fields can also be delimited by quotation marks. When a field contains quotation marks, they are doubled so that they are not considered as the start or end of the field. If a field contains a character that is used as a column separator (comma, semicolon, tab, etc.), or as a line separator (usually a newline character), the quotation marks are mandatory so that the sign is not confused with a separator.
+
+CSV files are often used around database management software or spreadsheets such as *Microsoft Excel*. A potential problem is caused by the fact that the separators are not standardized (commas, semicolons under certain localizations, such as French, etc.). It is therefore necessary to specify here how your CSV files are built. Specify the character used to separate the values on each line of the file (SEP) and the character that defines the decimal mark (DEC).
+
+- The default values in English are typically SEP = "," and DEC = "."
+- The default values in French are generally SEP = ";" and DEC = ","
+
+**CAUTION**: It is important to check if your CSV data files contain data that include line breaks. If this is the case, it could cause problems reading your data. Correct the situation if necessary before continuing.
+
+```{r, include=FALSE}
+SEP <- svDialogs::dlgInput("Enter separator character between values (default is \",\"):", default = ",", Sys.info()["SEP"])$res
+if(is.null(SEP) | length(SEP) == 0) {SEP = ","} else {if(SEP == "NA") {
+SEP <- ","}}
+DEC <- svDialogs::dlgInput("Enter decimal character (default is \".\"):", default = ".", Sys.info()["DEC"])$res
+if(is.null(DEC) | length(DEC) == 0) {DEC = "."} else {if(DEC == "NA") {
+DEC <- "."}}
+
+```
+
+**Your CSV files use the string "`r paste(SEP)`" as delimiter and the string "`r paste(DEC)`" as the decimal marker**.
+
+###Format of Some Data
+
+To import data correctly, the format of some data must be specified.
+
+```{r, include=FALSE}
+# Data exported from the CABIN database use specific formats.
+# This is the case for missing values and dates.
+
+# Please specify the value that indicates a missing value in the files
+
+#Ask user if missing value uses placeholder. If yes, prompt (default -99)
+
+na.vals <- if(svDialogs::dlg_message("Does your data use a placeholder for missing values?", "yesno")$res == "yes"){svDialogs::dlgInput("Enter missing value placeholder of choice:", default = "-99", Sys.info()["na.vals"])$res} else {""}
+
+# Please specify date format used in the files (without Time).
+# 
+# Codes for dates are:
+# %Y: Year with century (2017)
+# %y: Year without century (00-99)
+# %m: Month as decimal number (01-12)
+# %B: Full month name (in the current locale)
+# %b: Abbreviated month name (in the current locale)
+# %d: Day of the month as decimal number (01-31)
+# %A: Full weekday name (in the current locale)
+# %a: Abbreviated weekday name (in the current locale)
+dateformat <- svDialogs::dlgInput("Enter date format:
+
+%Y: Year with century (2017)
+%y: Year without century (00-99)
+%m: Month as decimal number (01-12)
+%B: Full month name (in the current locale)
+%b: Abbreviated month name (in the current locale)
+%d: Day of the month as decimal number (01-31)
+%A: Full weekday name (in the current locale)
+%a: Abbreviated weekday name (in the current locale)
+", default = "%d/%m/%Y", Sys.info()["dateformat"])$res
+if(is.null(dateformat) | length(dateformat) == 0) {na.vals = "%d/%m/%Y"} else {if(dateformat == "NA") {
+dateformat <- "%d/%m/%Y"}}
+```
+
+The following formats are defined four your data files:
+
+  - **A missing value is replaced by `r paste(na.vals)`**
+  - **The dates are formated using `r paste(dateformat)`**
+  
+Using the above date format, September 25, 2017 will be written as *`r paste(as.Date("25/09/2017", format = dateformat))`*.
+
+
+###Variables List
+
+A complete list of all general and physico-chemical parameters (except biological variables) is compiled in the "VariableList.csv" file. This file contains the names of parameters in abbreviated format (used in the CABIN database), the full name in French and English, the parameter group, the form of the parameter (for example, total, dissolved, extractable) and the unit of measurement.
+
+```{r, warning=FALSE, include=FALSE}
+# Run the following code lines without modification
+# 
+# To add variables to the VariableList.csv file, please contact Martin Jean (martin.jean@canada.ca)
+param.filename <- "VariableList.csv"
+param.master <- read.csv(paste("../../../Configuration/", param.filename, sep=""), as.is=TRUE, header=TRUE, sep=",", dec=".")
+```
+
+**The variables list *VariableList.csv* was used**.
+
+```{r, echo=F}
+blacklist = vector()
+blacklist <- suppressWarnings(read.table('./../Data_Donnees/blacklist_taxa.csv', header=F, sep=",", stringsAsFactors = F))
+Var_Type <- readxl::read_excel("./../Data_Donnees/Var_Type.xls", sheet = "Habitat Parameters")
+Var_Type <- as.data.frame(Var_Type[,c(3,6)])
+Var_Type[,1] <- gsub("-", ".", Var_Type[,1])
+Var_Type[,1] <- gsub("\\+", ".", Var_Type[,1])
+```
+
+**The taxa blacklist *blacklist_taxa.csv* was used.**
+
+###Censored Data
+
+In statistics, censored data refer to a type of data (abnormally referred to as "survival data") characterized by a partially known measurement or observation value.
+
+Among censored data types, the most common encountered in ecological data is observed when a measured value is outside the limits of the measuring instrument (method detection limit). For example, a scale can weigh up to a mass of 3 kg. If an object weighs 3.5 kg, the observer will know that the mass of the object is at least 3 kg.
+
+There are several [types of censored data](https://en.wikipedia.org/wiki/Censoring_(statistics)):
+
+- **Left censoring** - a data point is below a certain value but it is unknown by how much.
+- **Interval censoring** - a data point is somewhere on an interval between two values.
+- **Right censoring** - a data point is above a certain value but it is unknown by how much.
+- **Type I censoring** occurs if an experiment has a set number of subjects or items and stops the experiment at a predetermined time, at which point any subjects remaining are right-censored.
+- **Type II censoring** occurs if an experiment has a set number of subjects or items and stops the experiment when a predetermined number are observed to have failed; the remaining subjects are then right-censored.
+- **Random (or non-informative) censoring** is when each subject has a censoring time that is statistically independent of their failure time. The observed value is the minimum of the censoring and failure times; subjects whose failure time is greater than their censoring time are right-censored.
+
+
+```{r, include=FALSE}
+# Run the following code
+NDmethod <- "ReplaceValue"
+replace.value <- 0.5
+```
+
+There are several methods for processing censored data. **The method used here is half the detection limit**.
+
+##Data File Import
+
+This step includes the creation and formating of an R dataset comprising four main matrices: general, habitat, biological, and spatial data.
+
+###Files Imported
+
+```{r, include=FALSE}
+# Note: these files must be in the Data_Donnees subfolder of your project folder
+envFilename <- tail(strsplit(svDialogs::dlgOpen(default = './../Data_Donnees/Habitat.csv', title="Please specify the habitat data filename:", multiple = FALSE, Sys.info()["envFilename"])$res, split="/")[[1]], n=1)
+if(is.null(envFilename) | length(envFilename) == 0) {na.vals = "Habitat.csv"} else {if(envFilename == "NA") {
+envFilename <- "Habitat.csv"}}
+
+bioFilename <- tail(strsplit(svDialogs::dlgOpen(default = './../Data_Donnees/Benthic.csv', title="Please specify the biological data filename:", multiple = FALSE, Sys.info()["bioFilename"])$res, split="/")[[1]], n=1)
+if(is.null(bioFilename) | length(bioFilename) == 0) {na.vals = "Benthic.csv"} else {if(bioFilename == "NA") {
+bioFilename <- "Benthic.csv"}}
+
+```
+**The following files were imported into R:**
+
+  - Habitat Data: **`r paste(envFilename)`**
+  - Biological Data: **`r paste(bioFilename)`**
+
+####Habitat Data File
+
+Habitat data were imported. The list of deletions follows (rows or columns that do not have data).
+
+
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the deleted columns and lines and make sure it reflects reality.*
+
+```{r, echo=FALSE, warning=FALSE}
+# Import Habitat data file and remove empty lines and columns
+# Run the following code without modification
+all.dataset.ENV <- read.csv(paste("../Data_Donnees/", envFilename, sep=""), as.is=TRUE, header=TRUE, na.string=na.vals, sep=SEP, dec=DEC, encoding = "latin1", fileEncoding="UTF-8-BOM") #, row.names=1
+
+dataset.ENV <- rm.NAcol(all.dataset.ENV)
+dataset.ENV <- rm.NArows(dataset.ENV)
+```
+
+####Biological Data File
+
+Biological data were imported. The list of deletions follows (rows or columns that do not have data).
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the deleted columns and lines and make sure it reflects reality.*
+
+```{r, echo=FALSE, warning=FALSE}
+# Import Biological data file and remove empty lines and columns
+# Run the following code without modification
+all.dataset.BIO <- read.csv(paste("../Data_Donnees/", bioFilename, sep = ""), as.is=TRUE, header=TRUE,
+	 			   na.string=na.vals, sep=SEP, dec=DEC, encoding = "latin1", fileEncoding="UTF-8-BOM") #, row.names=1
+dataset.BIO <- rm.NAcol(all.dataset.BIO)
+
+{cat("COLUMNS REMOVED:","\n")
+cat("-----------------","\n")
+if (length(dataset.BIO[colnames(dataset.BIO) %in% blacklist]) == 1) {cat(length(dataset.BIO[colnames(dataset.BIO) %in% blacklist]), " taxa on the species blacklist were removed", "\n")} else {cat(length(dataset.BIO[colnames(dataset.BIO) %in% blacklist]), " taxa on the species blacklist was removed", "\n")}
+if(length(dataset.BIO[colnames(dataset.BIO) %in% blacklist]) != 0) {for (k in 1: length(dataset.BIO[colnames(dataset.BIO) %in% blacklist])){cat("- ", colnames(dataset.BIO[colnames(dataset.BIO) %in% blacklist])[k], "\n")}}
+dataset.BIO[colnames(dataset.BIO) %in% blacklist] <- NULL}
+
+dataset.BIO <- rm.NArows(dataset.BIO)
+
+```
+
+***
+
+**From the original Habitat data file, `r nrow(all.dataset.ENV)` visits (lines) and `r ncol(all.dataset.ENV)` variables (columns) were read. Once cleaned up, the habitat data contains `r nrow (dataset.ENV)` visits (lines) and `r ncol (dataset.ENV)` variables (columns)**. The following table shows the imported habitat data.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Is the habitat data csv file read correctly?*
+> - *Are the missing values correctly encoded (NA)?*
+> - *Have the censored data been transformed correctly?*
+> - *Are there missing columns?*
+
+
+```{r, echo=FALSE, warning=FALSE}
+# Removes the first columns from the habitat table to retain only habitat data
+# Run the following code without modification
+dataset.ENV[2:(match("GPSDatum", names(dataset.ENV)))] <- list(NULL)
+dataset.ENV2 <- dataset.ENV
+dataset.ENV[,1] <- NULL
+
+datatable(dataset.ENV2, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+```
+
+***
+
+**From the original Biological data file, `r nrow(all.dataset.BIO)` visits (lines) and `r ncol(all.dataset.BIO)` variables (columns) were read. Once cleaned up, the habitat data contains `r nrow (dataset.BIO)` visits (lines) and `r ncol (dataset.BIO)` variables (columns)**. The following table shows the imported habitat data.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Are all taxa present?*
+> - *Are null values properly encoded (0)?*
+> - *Is the number of visits in the biological data table (`r nrow(dataset.BIO)`) equal the one in the habitat data table (`r nrow(dataset.ENV)`)?*
+
+```{r, echo=FALSE, warning=FALSE}
+# Run the following code without modification
+# Remove the first columns of the Benthic table to keep only biological data
+dataset.BIO[2:(match("TotalSample", names(dataset.BIO)))] <- list(NULL)
+dataset.BIO[is.na(dataset.BIO)] <- 0 # Replace NA values by 0 in the Benthic table
+dataset.BIO2 <- dataset.BIO
+dataset.BIO[,1] <- NULL
+
+# Show imported and cleaned data
+datatable(dataset.BIO2, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+```
+
+####Samples List
+
+A list of samples (identified by the fields *Site, SampleDate, SampleId*) was created from the above imported files.
+
+```{r, echo=FALSE}
+# Run the following code without modification
+# Create a unified list of samples (Site, date, et Sample number)
+	names.BIO <- all.dataset.BIO[, c("Site", "SampleDate", "SampleId")]
+	names.HAB <- all.dataset.ENV[, c("Site", "SampleDate", "SampleId")]
+	dataset.NAM <- unique(rbind(names.BIO, names.HAB))
+	dataset.NAM <- rm.Time(dataset.NAM)
+	dataset.NAM2 <- arrange(dataset.NAM, Site, SampleDate, SampleId)
+```
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Are the three columns identifying the samples (Site, SampleDate, and SampleId) present?*
+> - *Have the dates been read correctly?*
+> - *Is the number of samples in this table (`r nrow(dataset.NAM)`) equal to that of the biological data table (`r nrow(dataset.BIO)`) and the habitat data table (`r nrow(dataset.ENV)`)?*
+
+
+```{r, echo=FALSE, warning=FALSE}
+#Show the created list of samples
+datatable(dataset.NAM, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+```
+
+####General Data
+
+A table for general data were created from the imported files above.
+
+```{r, echo=FALSE}
+# Run the following code without modification
+# Creat a General table named dataset.GEN
+# Lines without data will be deleted
+dataset.GEN <- all.dataset.BIO[, 1:(match("TotalSample", names(all.dataset.BIO)))]
+paste("A table for general data was created from a subset of the file", bioFilename)
+genFilename <- paste("Subset from ", bioFilename, sep="")
+dataset.GEN <- rm.NAcol(dataset.GEN)
+dataset.GEN[colnames(dataset.GEN) %in% blacklist] <- NULL
+# Delete the Time from SampleDate
+dataset.GEN <- rm.Time(dataset.GEN)
+			cat("Time deleted from the table dataset.GEN", "\n")
+
+```
+
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *Are all the columns (from "Taxonomist" to "TotalSample") present?*
+> - *Is the number of lines from this table (`r nrow(dataset.GEN)`) equal to that of the samples list (`r nrow(dataset.NAM)`), the biological data table (`r nrow(dataset.BIO)`), and to the habitat table (`r nrow(dataset.ENV)`)?*
+> - *Have the dates been read correctly? Were the values in the "SampleDate" column imported correctly? Do they match the sampling dates?*
+
+
+```{r, echo=FALSE, warning=FALSE}
+# Run the following code without modification
+# Show the created general table
+#datatable(dataset.GEN, extensions = c('FixedColumns', 'Scroller'), options = list(dom = 't', scrollX = TRUE, fixedColumns = TRUE, deferRender = TRUE, scroller = TRUE))
+datatable(dataset.GEN, filter = "top", rownames=F, options = list(pageLength = 3 ,scrollX = TRUE ))
+```
+
+####Spatial Coordinates
+
+A table for spatial coordinates was created from a subset of the files `r paste(bioFilename)` and `r paste(envFilename)` imported above.
+
+```{r, echo=FALSE}
+# Run the following code without modification
+# Create a Spatial table named dataset.SPA for spatial coordinates
+# Lines without data will be deleted
+# A list of missing coordinates is also created
+dataset.SPAb <- all.dataset.BIO[, c("Longitude", "Latitude", "GPSDatum", "SampleId")]
+dataset.SPAe <- all.dataset.ENV[, c("Longitude", "Latitude", "GPSDatum", "SampleId")]
+dataset.SPA <- unique(rbind(dataset.SPAb, dataset.SPAe))
+dataset.SPA <- arrange(dataset.SPA, SampleId)
+dataset.SPA[colnames(dataset.SPA) %in% blacklist] <- NULL
+dataset.SPA2 <- dataset.SPA
+NA.SPA <- get.NArows(dataset.SPA)
+NA.SPA <- inner_join(NA.SPA, dataset.NAM2, by = "SampleId")
+rm(dataset.SPAb)
+rm(dataset.SPAe)
+paste("A table for spatial data was created from a subset of the files", bioFilename, "and ", envFilename)
+spaFilename <- paste("Subset from ", bioFilename, "and", envFilename, sep="")
+dataset.SPA <- rm.NArows(dataset.SPA)
+```
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Check the data and make sure it reflects reality. Consider the following:*
+>
+> - *The values in column "GPSDattum" should idealy be the same. Is that the case?*
+> - *Is the number to lines from this table (`r nrow(dataset.SPA)`) equal to that of the samples list (`r nrow(dataset.NAM)`), the general data table (`r nrow(dataset.GEN)`), the biological data table (`r nrow(dataset.BIO)`), and the habitat data table (`r nrow(dataset.ENV)`)?*
+> - *The values of the "Latitude" and "Longitude" columns must be non-zero. Is that the case?*
+
+
+```{r, echo=FALSE, warning=FALSE}
+# Run the following code without modification
+# Show the created spatial table
+datatable(dataset.SPA, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+#rm(all.dataset.BIO)
+#rm(all.dataset.ENV)
+```
+
+**Note** : The spatial coordinates will be represented on a map using the Spatial Data Checkbook.
+
+###Equality in datasets
+
+The datasets were all compared to identify data samples missing from one or the other.
+
+Rows represent samples present solely in that dataset when compared to the matching column.
+
+```{r Dataset_Equity_Check, echo=FALSE}
+NoMatch_Dataset <- matrix(ncol=5, nrow=5)
+rownames(NoMatch_Dataset) <- c("Biological", "Environmental", "General", "Name", "Spatial")
+colnames(NoMatch_Dataset) <- c("Biological", "Environmental", "General", "Name", "Spatial")
+
+for(i in 1:nrow(NoMatch_Dataset)){for(j in 1:ncol(NoMatch_Dataset)){NoMatch_Dataset[i,j] <- length(setdiff(get(c("dataset.BIO2", "dataset.ENV2", "dataset.GEN", "dataset.NAM", "dataset.SPA")[i])$SampleId, get(c("dataset.BIO2", "dataset.ENV2", "dataset.GEN", "dataset.NAM", "dataset.SPA")[j])$SampleId))}}
+
+datatable(NoMatch_Dataset, filter = "top", rownames=F, options = list(scrollX = TRUE ))
+```
+
+###Missing Values
+
+Across all five datasets, lists of those samples with missing values are generated for each variable, and saved as external files.
+
+```{r, echo=F, include=F}
+Missing_Bio <- sapply(dataset.BIO, function(x) is.na(x))
+Missing_Env <- sapply(dataset.ENV, function(x) is.na(x))
+Missing_Gen <- sapply(dataset.GEN, function(x) is.na(x))
+Missing_Nam <- sapply(dataset.NAM, function(x) is.na(x))
+Missing_Spa <- sapply(dataset.SPA, function(x) is.na(x))
+rownames(Missing_Bio) <- dataset.BIO2$SampleId
+rownames(Missing_Env) <- dataset.ENV2$SampleId
+rownames(Missing_Gen) <- dataset.GEN$SampleId
+rownames(Missing_Nam) <- dataset.NAM$SampleId
+rownames(Missing_Spa) <- dataset.SPA$SampleId
+
+sink(file="./../Reports_Rapports/Missing_Bio.txt")
+for(i in 1:ncol(Missing_Bio)){if(sum(Missing_Bio[,i]>0)){cat(paste0(colnames(Missing_Bio)[i]),"\n");print(rownames(Missing_Bio)[which(Missing_Bio[,i])])}}
+sink()
+sink(file="./../Reports_Rapports/Missing_Env.txt")
+for(i in 1:ncol(Missing_Env)){if(sum(Missing_Env[,i]>0)){cat(paste0(colnames(Missing_Env)[i]),"\n");print(rownames(Missing_Env)[which(Missing_Env[,i])])}}
+sink()
+sink(file="./../Reports_Rapports/Missing_Gen.txt")
+for(i in 1:ncol(Missing_Gen)){if(sum(Missing_Gen[,i]>0)){cat(paste0(colnames(Missing_Gen)[i]),"\n");print(rownames(Missing_Gen)[which(Missing_Gen[,i])])}}
+sink()
+sink(file="./../Reports_Rapports/Missing_Nam.txt")
+for(i in 1:ncol(Missing_Nam)){if(sum(Missing_Nam[,i]>0)){cat(paste0(colnames(Missing_Nam)[i]),"\n");print(rownames(Missing_Nam)[which(Missing_Nam[,i])])}}
+sink()
+sink(file="./../Reports_Rapports/Missing_Spa.txt")
+for(i in 1:ncol(Missing_Spa)){if(sum(Missing_Spa[,i]>0)){cat(paste0(colnames(Missing_Spa)[i]),"\n");print(rownames(Missing_Spa)[which(Missing_Spa[,i])])}}
+sink()
+
+```
+
+
+###Save R Date to Files
+
+The five data files (samples list, general data, environmental data, biological data, and spatial coordinates) are saved in *RData* format in the *Data_Data* subfolder.
+
+```{r, echo=FALSE, include=FALSE}
+# Run the following code without modification
+# Save the dataset in .RData files for later use
+save(dataset.ENV, file="../Data_Donnees/dataset_Env.RData")
+save(dataset.BIO, dataset.BIO2, file="../Data_Donnees/dataset_Bio.RData")
+save(dataset.SPA, file="../Data_Donnees/dataset_Spa.RData")
+save(dataset.GEN, file="../Data_Donnees/dataset_Gen.RData")
+save(dataset.NAM, file="../Data_Donnees/dataset_Nam.RData")
+save(analysisTitle, file="../Data_Donnees/analysis_Title.RData")
+```
+
+#Next Steps
+Your data are now ready to be verified and validated.
+
+Refer to the *README.MD* file for details on how to verify and validate your data.
+
+#Modification History
+
+**What's New, Updated, or Fixed in This Release**
+
+***
+![ACTION:](../../../Configuration/logo_new.png) New
+![ACTION:](../../../Configuration/logo_updated.png) Updated    ![ACTION:](../../../Configuration/logo_fixed.png) Fixed
+
+***
+
+**CABIN_vv_import.Rmd Version 2.03 - February 13, 2020**
+
+Addition of object dataset.BIO2 in dataset_Bio.RData.
+
+![ACTION:](../../../Configuration/logo_updated.png)   **Saved dataset.BIO2** --- Modification of the saving of dataset_Bio.RData to include both dataset.BIO and dataset.BIO2.
+
+***
+
+**CABIN_vv_import.Rmd Version 2.02 - February 6, 2020**
+
+Addition of the study name to the saved data since it used used for the remaining modules.
+
+![ACTION:](../../../Configuration/logo_updated.png)   **Saved file names** --- Modification of the names used for saving data files, replace "." by "_".
+
+![ACTION:](../../../Configuration/logo_new.png)   **Addition of the analysis title as saved data** --- Study name is now saved in a file since it is used in other modules.
+***
+
+**CABIN_vv_import.Rmd Version 2.01 - January 16, 2018**
+
+Addition of a more robust way to create the spatial data file using both Benthic and Habitat files.
+
+![ACTION:](../../../Configuration/logo_updated.png)   **Spatial Data** --- Modification of the code used to create the list of spatial coordinates. Now, both *Benthic* and *Habitat* files are used to create an unified list.
+
+![ACTION:](../../../Configuration/logo_new.png)   **List of missing spatial coordinates** --- A new list of visits with no spatial coordinates is created.
+***
+
+**CABIN_vv_import.Rmd Version 2.0 - September 12, 2017**
+
+CABIN_vv_import 2.0 uses a R Notebook instead of regular R code file.
+
+![ACTION:](../../../Configuration/logo_new.png)   **R Notebook** --- Rewrited using a R Notebook.
+
+
+![ACTION:](../../../Configuration/logo_new.png)   **Actions** --- Added suggestions of actions to help in the verification of the import process into R.
+
+***
+
+**CABIN_vv_import.Rmd Version 1.0 - June 16, 2017**
+
+Initial release of the import tool.
+
+![ACTION:](../../../Configuration/logo_new.png)   **First completed version**.
+
+
+***
+
+Developped by [Martin Jean](mailto:martin.jean@canada.ca) and Evelyne Paquette-Boisclair
