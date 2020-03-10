@@ -117,13 +117,13 @@ The following is a brief description of the various files and folders contained 
 
 **Templates_Modèles** : folder containing project templates in English and French.
 
-## General Operation
+## Project Creation
 
 This document is a [R Markdown notebook](http://rmarkdown.rstudio.com). When you execute the code present in such a notebook, the results are displayed under the corresponding code.
 
 To start, replace the word *Test* in the line below with the name you want to give to your project, then press the *Run Current Chunk* button inside the code block (*chunk*), or by placing the cursor inside the chunk and typing *Cmd+Shift+Enter*.
 
-```{r include=FALSE}
+```{r echo=TRUE}
 # Run the chunk
 folderName <- "Test"
 folderName <- svDialogs::dlgInput("Project folder name to create:", default = "Test", Sys.info()["folderName"])$res
