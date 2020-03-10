@@ -1,28 +1,28 @@
 ---
 title: "CABIN Import R Markdown File"
 output:
-  html_document:
-    df_print: paged
-    toc: yes
-    toc_depth: '4'
   html_notebook:
     number_sections: yes
     toc: yes
     toc_depth: 4
     toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '4'
   word_document:
     toc: yes
-date: '2019-05-09'
-version: '2.01'
+date: '2020-02-13'
+version: '2.03'
 ---
 
 | ![](../../../Configuration/gc_en.png)  |  ![](../../../Configuration/cabin_logo.png) |
 |:------------------------------------|--------------------------------------:|                            
 
 
-#CABIN DATA IMPORT
+# CABIN DATA IMPORT
 
-*Version 2.01*
+*Version 2.03*
 
 *Environment and Climate Change Canada*
 
@@ -46,9 +46,9 @@ This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.c
 
 This report presents the results of import into R of CABIN data files. Once imported into R, this data can be verified and validated using the other R notebooks provided.
 
-##Setting Basic Parameters
+## Setting Basic Parameters
 
-###Analysis title
+### Analysis title
 
 ```{r include=FALSE}
 # Run code as is and define a title for this analysis, and platform you are using.
@@ -67,12 +67,11 @@ Platform <- "Windows"#}}
 
 This report deals with data import for project **`r paste(analysisTitle)`**.
 
-###CSV format settings
+### CSV format settings
 
 It is important to define how your csv files are built so that your data is imported correctly. The acronym [CSV](http://en.wikipedia.org/wiki/Comma-separated_values), which means * Comma-separated values *, refers to an open computer format representing tabular data as comma-separated values. This format has never really been the subject of a formal specification.
 
-A CSV file is a text file, as opposed to so-calle
-d "binary" formats. Each line of the text corresponds to a row of the table and the commas correspond to the separations between the columns. The comma-separated text segments thus correspond to the contents of the cells in the table. A line is an ordered sequence of characters terminated by a line break character (CRLF), the last line being exempt.
+A CSV file is a text file, as opposed to so-called "binary" formats. Each line of the text corresponds to a row of the table and the commas correspond to the separations between the columns. The comma-separated text segments thus correspond to the contents of the cells in the table. A line is an ordered sequence of characters terminated by a line break character (CRLF), the last line being exempt.
 
 Text fields can also be delimited by quotation marks. When a field contains quotation marks, they are doubled so that they are not considered as the start or end of the field. If a field contains a character that is used as a column separator (comma, semicolon, tab, etc.), or as a line separator (usually a newline character), the quotation marks are mandatory so that the sign is not confused with a separator.
 
@@ -95,7 +94,7 @@ DEC <- "."}}
 
 **Your CSV files use the string "`r paste(SEP)`" as delimiter and the string "`r paste(DEC)`" as the decimal marker**.
 
-###Format of Some Data
+### Format of Some Data
 
 To import data correctly, the format of some data must be specified.
 
@@ -143,7 +142,7 @@ The following formats are defined four your data files:
 Using the above date format, September 25, 2017 will be written as *`r paste(as.Date("25/09/2017", format = dateformat))`*.
 
 
-###Variables List
+### Variables List
 
 A complete list of all general and physico-chemical parameters (except biological variables) is compiled in the "VariableList.csv" file. This file contains the names of parameters in abbreviated format (used in the CABIN database), the full name in French and English, the parameter group, the form of the parameter (for example, total, dissolved, extractable) and the unit of measurement.
 
@@ -168,7 +167,7 @@ Var_Type[,1] <- gsub("\\+", ".", Var_Type[,1])
 
 **The taxa blacklist *blacklist_taxa.csv* was used.**
 
-###Censored Data
+### Censored Data
 
 In statistics, censored data refer to a type of data (abnormally referred to as "survival data") characterized by a partially known measurement or observation value.
 
@@ -192,11 +191,11 @@ replace.value <- 0.5
 
 There are several methods for processing censored data. **The method used here is half the detection limit**.
 
-##Data File Import
+## Data File Import
 
 This step includes the creation and formating of an R dataset comprising four main matrices: general, habitat, biological, and spatial data.
 
-###Files Imported
+### Files Imported
 
 ```{r, include=FALSE}
 # Note: these files must be in the Data_Donnees subfolder of your project folder
@@ -214,7 +213,7 @@ bioFilename <- "Benthic.csv"}}
   - Habitat Data: **`r paste(envFilename)`**
   - Biological Data: **`r paste(bioFilename)`**
 
-####Habitat Data File
+#### Habitat Data File
 
 Habitat data were imported. The list of deletions follows (rows or columns that do not have data).
 
@@ -232,7 +231,7 @@ dataset.ENV <- rm.NAcol(all.dataset.ENV)
 dataset.ENV <- rm.NArows(dataset.ENV)
 ```
 
-####Biological Data File
+#### Biological Data File
 
 Biological data were imported. The list of deletions follows (rows or columns that do not have data).
 
@@ -302,7 +301,7 @@ dataset.BIO[,1] <- NULL
 datatable(dataset.BIO2, filter = "top", rownames=F, options = list(scrollX = TRUE ))
 ```
 
-####Samples List
+#### Samples List
 
 A list of samples (identified by the fields *Site, SampleDate, SampleId*) was created from the above imported files.
 
@@ -329,7 +328,7 @@ A list of samples (identified by the fields *Site, SampleDate, SampleId*) was cr
 datatable(dataset.NAM, filter = "top", rownames=F, options = list(scrollX = TRUE ))
 ```
 
-####General Data
+#### General Data
 
 A table for general data were created from the imported files above.
 
@@ -342,6 +341,7 @@ paste("A table for general data was created from a subset of the file", bioFilen
 genFilename <- paste("Subset from ", bioFilename, sep="")
 dataset.GEN <- rm.NAcol(dataset.GEN)
 dataset.GEN[colnames(dataset.GEN) %in% blacklist] <- NULL
+
 # Delete the Time from SampleDate
 dataset.GEN <- rm.Time(dataset.GEN)
 			cat("Time deleted from the table dataset.GEN", "\n")
@@ -364,7 +364,7 @@ dataset.GEN <- rm.Time(dataset.GEN)
 datatable(dataset.GEN, filter = "top", rownames=F, options = list(pageLength = 3 ,scrollX = TRUE ))
 ```
 
-####Spatial Coordinates
+#### Spatial Coordinates
 
 A table for spatial coordinates was created from a subset of the files `r paste(bioFilename)` and `r paste(envFilename)` imported above.
 
@@ -406,7 +406,7 @@ datatable(dataset.SPA, filter = "top", rownames=F, options = list(scrollX = TRUE
 
 **Note** : The spatial coordinates will be represented on a map using the Spatial Data Checkbook.
 
-###Equality in datasets
+### Equality in datasets
 
 The datasets were all compared to identify data samples missing from one or the other.
 
@@ -417,12 +417,16 @@ NoMatch_Dataset <- matrix(ncol=5, nrow=5)
 rownames(NoMatch_Dataset) <- c("Biological", "Environmental", "General", "Name", "Spatial")
 colnames(NoMatch_Dataset) <- c("Biological", "Environmental", "General", "Name", "Spatial")
 
-for(i in 1:nrow(NoMatch_Dataset)){for(j in 1:ncol(NoMatch_Dataset)){NoMatch_Dataset[i,j] <- length(setdiff(get(c("dataset.BIO2", "dataset.ENV2", "dataset.GEN", "dataset.NAM", "dataset.SPA")[i])$SampleId, get(c("dataset.BIO2", "dataset.ENV2", "dataset.GEN", "dataset.NAM", "dataset.SPA")[j])$SampleId))}}
+for(i in 1:nrow(NoMatch_Dataset)){
+    for(j in 1:ncol(NoMatch_Dataset)){
+        NoMatch_Dataset[i,j] <- length(setdiff(get(c("dataset.BIO2", "dataset.ENV2", "dataset.GEN", "dataset.NAM", "dataset.SPA")[i])$SampleId, get(c("dataset.BIO2", "dataset.ENV2", "dataset.GEN", "dataset.NAM", "dataset.SPA")[j])$SampleId))
+    }
+}
 
 datatable(NoMatch_Dataset, filter = "top", rownames=F, options = list(scrollX = TRUE ))
 ```
 
-###Missing Values
+### Missing Values
 
 Across all five datasets, lists of those samples with missing values are generated for each variable, and saved as external files.
 
@@ -457,7 +461,7 @@ sink()
 ```
 
 
-###Save R Date to Files
+### Save R Date to Files
 
 The five data files (samples list, general data, environmental data, biological data, and spatial coordinates) are saved in *RData* format in the *Data_Data* subfolder.
 
@@ -472,12 +476,12 @@ save(dataset.NAM, file="../Data_Donnees/dataset_Nam.RData")
 save(analysisTitle, file="../Data_Donnees/analysis_Title.RData")
 ```
 
-#Next Steps
+## Next Steps
 Your data are now ready to be verified and validated.
 
 Refer to the *README.MD* file for details on how to verify and validate your data.
 
-#Modification History
+## Modification History
 
 **What's New, Updated, or Fixed in This Release**
 

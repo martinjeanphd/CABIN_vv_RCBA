@@ -100,7 +100,7 @@ Voici une description sommaire des différents dossiers et documents contenus da
 
 ## Fonctionnement général
 
-Ce document est un carnet [R Markdown](http://rmarkdown.rstudio.com). Lorsque vous exécuter le code présent dans un tel carnet, les résultats s'affichent sous le code correspondant. 
+Ouvrez le document **LISEZMOI.Rmd**, un carnet [R Markdown](http://rmarkdown.rstudio.com). Lorsque vous exécuter le code présent dans un tel carnet, les résultats s'affichent sous le code correspondant. 
 
 Pour débuter, remplacer le mot *Test* dans la ligne plus bas par le nom que vous souhaitez donner à votre projet, puis appuyez sur le bouton *Run Current Chunk* (triangle vert à droite) situé à l'intérieur du bloc de code (*chunk*), ou en placant le curseur à l'intérieur du bloc de code puis en tapant *Cmd+Shift+Enter*. 
 

@@ -46,11 +46,11 @@ To use these tools, you must have the following:
 
 ## Instructions for Starting an Analysis
 
-First, you need to install the packages needed by *R*
+First, you need to install the packages needed by *R* for running this READ ME file.
 
 ```{r setup, include=FALSE}
-## Required Packages
-source("Required_packages.R")
+## Required parckage
+library(svDialogs)
 
 ```
 
@@ -136,6 +136,22 @@ to <- "Projects_Projets/"
 
 file.copy(from, to, recursive = TRUE)
 file.rename(paste(to, "English", sep = ""), paste(to, folderName, sep = ""))
+
+myProject <- function(proj, ...) {
+
+ 
+    x <- c("Version: 1.0", "", "RestoreWorkspace: Default", "SaveWorkspace: Default", 
+        "AlwaysSaveHistory: Default", "", "EnableCodeIndexing: Yes", 
+        "UseSpacesForTab: Yes", "NumSpacesForTab: 4", "Encoding: UTF-8", 
+        "", "RnwWeave: knitr", "LaTeX: pdfLaTeX")
+
+    cat(paste(x, collapse="\n"), file=file.path(proj, paste0(basename(proj), ".Rproj")))
+
+    message(paste(basename(proj), "a été créé"))
+    svDialogs::dlg_message(paste(nomDossier, " a été créé."), type = c("ok"))
+}
+
+myProject(paste(to, nomDossier, sep = ""))
 ```
 
 

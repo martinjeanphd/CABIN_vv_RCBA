@@ -46,7 +46,7 @@ Pour utiliser ces outils, vous devez disposer des éléments suivants :
 
 ## Instructions pour démarrer une analyse
 
-Premièrement, nous devons installer les modules externes nécessaires pour *R*
+Premièrement, nous devons installer les modules externes nécessaires pour *R* afin d'exécuter ce fichier LISEZ moi.
 
 ```{r setup, include=FALSE}
 ## Modules requis
