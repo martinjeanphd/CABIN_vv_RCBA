@@ -19,7 +19,7 @@ version: '1.1'
 
 
 
-#CABIN VERIFICATION AND VALIDATION - SPATIAL DATA
+# CABIN VERIFICATION AND VALIDATION - SPATIAL DATA
 
 *Environment and Climate change Canada*
 
@@ -27,7 +27,7 @@ version: '1.1'
 
 ***
 
-```{r include=FALSE}
+```{r setup, include=FALSE}
 ## Required Packages and Custom Functions
 source("../../../Required_packages.R")
 source("../../../Required_functions.R")
@@ -47,13 +47,13 @@ In this analysis, the spatial dataset is checked to answer the following questio
 This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.com). When you execute the code embedded in the notebook, the results will appear under the corresponding code. To do this, place your cursor inside a chunk (box which contains *R* code) and click the green arrow to the right of it named *Run Current Chunk* or press *Ctrl+Shift+Enter* (*Cmd+Shift+Enter* in *macOS*) on your keyboard. Repeat for each chunk. As the code contained in this notebook is executed, the results will appear under each of the corresponding chunks in this window. Once all commands are executed, click the *Preview* button at the top left of this window or press the *Ctrl+Shift+K* keys (*Cmd+Shift+K* in *macOS*). A new window will appear and will contain the report of these verification and validation results for the spatial CABIN data.
 
 
-##Requirements
+## Requirements
 
 This notebook assumes that you have imported your data into *R* using the import notebook (CABIN_vv_import.Rmd).
 
 The dataset containing spatial data for this project is **`r if(is.data.frame(dataset.SPA)) "present" else "absent. Please open and execute the 'CABIN_vv_import.Rmd' notebook before running this notebook"`**.
 
-##Descriptive Statistics
+## Descriptive Statistics
 
 The data file contains `r {nrow(dataset.SPA)}` visits (rows) and `r {ncol(dataset.SPA)}` variables (columns).
 
@@ -76,7 +76,7 @@ The following table presents a subset of the data.
 `r colnames(dataset.SPA) `
 
 
-###General Statistics
+### General Statistics
 
 The following table shows the general statistics of the spatial coordinates from the dataset. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable.
 
@@ -105,9 +105,9 @@ datatable(summary.SPA, filter = "top", rownames=F, options = list(scrollX = TRUE
 > *Check the data and make sure it reflects reality. Examine statistics and identify, if present, anomalies with statistics.
 
 
-##Presence of Outliers
+## Presence of Outliers
 
-###Sites Location
+### Sites Location
 
 The following interactive map illustrates the location of the visits based on the geographic coordinates in the dataset. Click on a label to see more info.
 
@@ -116,8 +116,8 @@ The following interactive map illustrates the location of the visits based on th
 
 dataset.SPA2 <- dataset.SPA
 dataset.NAM2 <- dataset.NAM
-dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate")], by = "SampleId")
-dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleId)
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate", "SampleNumber")], by = "SampleId")
+dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleNumber)
 dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
 dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
 dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
@@ -136,7 +136,7 @@ rm(dataset.NAM2)
 ```
 
 
-###Dispersion of Observed Values
+### Dispersion of Observed Values
 
 The following scatterplots present the value of the spatial coordinates observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
 
@@ -164,7 +164,7 @@ print(plot.ab)
 ```
 
 
-###Identification of Potential Outliers
+### Identification of Potential Outliers
 
 The first boxplot (left) shows the distribution of continuous variable values observed in the dataset and the dispersion diagram (right) show the distribution of observed continuous variable values in the order in which they appear in this file. Data with identification by their identifier on the diagrams are potentially outliers contained in the dataset. The method used to identify potentially outliers is the interquantile range (*IQR*). The IQR is calculated as follows:
 

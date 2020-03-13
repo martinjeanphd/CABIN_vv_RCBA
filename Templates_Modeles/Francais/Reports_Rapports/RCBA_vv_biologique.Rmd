@@ -19,7 +19,7 @@ version: '1.1'
 |:------------------------------------|--------------------------------------:|                            
 
 
-#VÉRIFICATION ET VALIDATION RCBA - DONNÉES BIOLOGIQUES
+# VÉRIFICATION ET VALIDATION RCBA - DONNÉES BIOLOGIQUES
 
 *Environnement et changement climatique Canada*
 
@@ -29,7 +29,7 @@ version: '1.1'
 
 Ce document est un carnet de note écrit en [Markdown R](http://rmarkdown.rstudio.com). Lorsque vous éxécuter le code intégré au carnet, les résulats apparaitront sous le code correspondant.
 
-Ce rapport présente les résultats de la vérification et la validation des données biologiques pour le projet **`r paste(datasetName)`**.
+Ce rapport présente les résultats de la vérification et la validation des données biologiques pour le projet **`r paste(analysisTitle)`**.
 
 Dans cette analyse, le jeu de descripteurs biologiques sera vérifié pour répondre à la question suivante :
   
@@ -37,7 +37,7 @@ Dans cette analyse, le jeu de descripteurs biologiques sera vérifié pour répo
 
 Ce document est un carnet de notes [R Markdown](http://rmarkdown.rstudio.com). Pour obtenir les résultats de la vérification et la validation des données, exécutez les commandes contenues dans ce carnet de notes. Pour ce faire, positionnez votre curseur à l'intérieur d'une boîte de commandes et cliquez sur la flèche verte à la droite de celle-ci nommée *Run Current Chunk* ou appuyez sur les touches *Ctrl+Maj+Entrée* (*Cmd-Maj+Entrée* sur *macOS*) de votre clavier. Répétez pour chaque boîte de commandes. À mesure que les commandes contenues dans ce carnet seront exécutées, les résultats apparaîtront sous chacune des commandes correspondantes dans la présente fenêtre. Une fois toutes les commandes exécutées, cliquez sur le bouton *Preview* en haut à gauche de la présente fenêtre ou appuyer sur les touches *Ctrl+Maj+K*. Une nouvelle fenêtre apparaîtra et contiendra le rapport de ces résultats de la vérification et la validation des données générales RCBA.
 
-##Prérequis
+## Prérequis
 
 ```{r include=FALSE}
 ## Modules externes et fonctions personnalisées requis
@@ -48,9 +48,12 @@ source("../../../Required_functions.R")
 ## Project Preferences
 source("../../../Configuration/project_settings.R")
 
+## Create a folder, if needed, for saving results
+ ifelse(dir.exists("Résultats_biologie"),"",dir.create("Résultats_biologie"))
+ 
 ```
 
-##Statistiques descriptives
+## Statistiques descriptives
 
 Le fichier de données contient `r nrow(dataset.BIO)` visites (lignes) et `r ncol(dataset.BIO)` taxons (colonnes).
 
@@ -58,7 +61,7 @@ Le tableau suivant présente une partie des données du fichier.
 
 **Lecture des données biologiques**
 
-`r head(dataset.BIO) `
+`r datatable(dataset.BIO, filter = "top", rownames=F, options = list(scrollX = TRUE )) `
 
 > ![ACTION:](../../../Configuration/action.png)
 > *Examinez les points suivants :*
@@ -78,7 +81,7 @@ Le tableau suivant présente une partie des données du fichier.
 
 
 
-`r formattable(dataset.NAM, align = "c", row.names = TRUE)`
+`r datatable(dataset.NAM, filter = "top", rownames=F, options = list(scrollX = TRUE ))`
 
 **Liste des variables :**  
 
@@ -88,7 +91,7 @@ Le tableau suivant présente une partie des données du fichier.
 > *Vérifiez les variables ci-haut et assurez-vous qu'elles sont toutes présentes.
 
 
-##Statistiques générales
+## Statistiques générales
 
 Le tableau suivant présente les principaux paramètre généraux par variable. Lorsque le résultat obtenu à la ligne *BinaryData* du tableau est *TRUE*, cela indique que la variable présente des données binaires. Cependant, ce résultat peut également n'être obtenu que parce que la variable ne présente qu'une à deux données au maximum. La ligne *Na.values* indique le nombre de valeurs manquantes que présente chaque variable.
 
@@ -107,7 +110,7 @@ summary.BIO$`NA's` <- NULL
 summary.BIO <- as.data.frame(t(summary.BIO))
 summary.BIO
 }
-#formattable(summary.BIO, digits = 2, align = "c")
+datatable(summary.BIO, filter = "top", rownames=F, options = list(scrollX = TRUE ))
 
 ```
 
@@ -118,10 +121,10 @@ summary.BIO
 > - * Vérifiez les données et assurez-vous qu'elles réflètent bien la réalité. Examinez les statistiques de base et identifiez, le cas échéant, des anomalies au niveaux des statistiques de base.
 
 
-##Répartition géographique
+## Répartition géographique
 
 
-###Répartition des taxons
+### Répartition des taxons
 
 Les graphiques suivants illustrent la position (latitude et longitude) ainsi que l'abondance en taxons des sites observées dans le fichier de données pour chaque taxon.
 
@@ -136,24 +139,24 @@ Les graphiques suivants illustrent la position (latitude et longitude) ainsi que
 ```{r, echo=FALSE, warning=FALSE}
 #Distribution géographique des taxon
 
-dataset.GEN2 <- rownames_to_column(dataset.GEN, var = "rownames")
-dataset.BIO2 <- rownames_to_column(dataset.BIO, var = "rownames")
-dataset.BIO2 <- left_join(dataset.BIO2, dataset.GEN2[,c("rownames", "Longitude", "Latitude")], by = "rownames")
+dataset.GEN2 <- dataset.GEN
+dataset.BIO2 <- left_join(dataset.BIO2, dataset.GEN2[,c("SampleId", "Longitude", "Latitude")], by = "SampleId")
 
-dataset.BIOLL <- dataset.BIO2
-dataset.BIOLL$rownames <- NULL
-# [2:ncol(dataset.BIO2)]
-# thesize[c(length(size)-2,length(size)-1, length(size))] <- NA
+if("Longitude.x" %in% colnames(dataset.BIO2)){colnames(dataset.BIO2)[which(colnames(dataset.BIO2) == "Longitude.x")] <- "Longitude"}
+if("Latitude.x" %in% colnames(dataset.BIO2)){colnames(dataset.BIO2)[which(colnames(dataset.BIO2) == "Latitude.x")] <- "Latitude"}
+if("Longitude.y" %in% colnames(dataset.BIO2)){dataset.BIO2$Longitude.y <- NULL}
+if("Latitude.y" %in% colnames(dataset.BIO2)){dataset.BIO2$Latitude.y <- NULL}
 
-for(i in 2:(ncol(dataset.BIOLL)-2)){
-    graph.geo.ab <- ggplot(dataset.BIOLL, aes(Longitude, Latitude)) +
-        geom_point(shape = 21, aes(size = dataset.BIOLL[i])) +
-        ggtitle(paste("Distribution géographique de", colnames(dataset.BIOLL[i]))) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        scale_size(range = c(1,10), name = "Abondance")
+size <- dataset.BIO2[(2:ncol(dataset.BIO2))-2]
+
+for(i in 2:(ncol(dataset.BIO2)-2)){
+  graph.geo.ab <- ggplot(dataset.BIO2, aes(dataset.BIO2$Longitude, dataset.BIO2$Latitude)) +
+    geom_point(shape = 21, aes(size = size[,i])) + #Broken on ggplot2 3.2.0, 3.1.0, 3.0.0
+          ggtitle(paste("Distribution géographique de", colnames(dataset.BIO2[i]))) +
+          theme(plot.title = element_text(hjust = 0.5)) +
+          scale_size(range = c(1,10), name = "Abondance")
     graph.geo.ab
     print(graph.geo.ab)
-    #ggplotly(graph.geo.ab)
 }
 
 rm(size)
@@ -162,7 +165,7 @@ rm(dataset.GEN2)
 ```
 
 
-###Répartition de la richesse
+### Répartition de la richesse
 
 Les graphiques suivants illustrent la position (latitude et longitude) ainsi que la richesse en taxons par site observées dans le fichier de données.
 
@@ -179,11 +182,14 @@ Les graphiques suivants illustrent la position (latitude et longitude) ainsi que
 #Distribution géographique de la richesse en taxons
 
 dataset.BIO2$richness <- apply(dataset.BIO > 0, 1, sum, na.rm=TRUE)
-dataset.SPA2 <- rownames_to_column(dataset.SPA, var = "rownames")
-dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[,c("rownames", "richness")], by = "rownames")
+dataset.SPA2 <- dataset.SPA
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[,c("SampleId", "richness")], by = "SampleId")
 
-graph.geo.sp <- ggplot(dataset.SPA2, aes(Longitude, Latitude)) +
-  geom_point(shape = 21, aes(size = richness), na.rm = TRUE) +
+if("richness.x" %in% colnames(dataset.SPA2)){colnames(dataset.SPA2)[which(colnames(dataset.SPA2) == "richness.x")] <- "richness"}
+if("richness.y" %in% colnames(dataset.SPA2)){dataset.SPA2$richness.y <- NULL}
+
+graph.geo.sp <- ggplot(dataset.SPA2, aes(dataset.SPA2$Longitude, dataset.SPA2$Latitude)) +
+  geom_point(shape = 21, aes(size = dataset.SPA2$richness), na.rm = TRUE) +
   ggtitle(paste("Distribution géographique de la richesse en taxons")) +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_size(range = c(1,10), name = "Richesse en taxons")
@@ -194,21 +200,21 @@ graph.geo.sp
 
 La carte interactive suivante illustre les mêmes données que le graphique précédent. Cliquez sur le marqueur d'une visite pour indiquer la richesse en taxons observée dans celle-ci.
 
-```{r, echo=FALSE, fig.height=5.5, fig.width=8.5, message=FALSE, include=TRUE}
+```{r 5, echo=FALSE, fig.height=5.5, fig.width=8.5, message=FALSE, include=TRUE}
 #Cartographie de la distribution de la richesse en taxons
 
-dataset.NAM2 <- rownames_to_column(dataset.NAM, var = "rownames")
+dataset.NAM2 <- dataset.NAM
 dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, dataset.NAM2$SampleDate, dataset.NAM2$SampleNumber)
-dataset.SPA2 <- rownames_to_column(dataset.SPA, var = "rownames")
-dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[,c("rownames", "Site_Date_Number")], by = "rownames")
-dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("rownames", "Site", "SampleDate", "SampleNumber")], by = "rownames")
-dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[, c("rownames", "richness")], by = "rownames")
+dataset.SPA2 <- dataset.SPA
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleID")
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate", "SampleNumber")], by = "SampleId")
+dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[, c("SampleID", "richness")], by = "SampleID")
 dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleNumber)
 dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
 dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
 dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
 
-cabinPoints <- SpatialPointsDataFrame(coords = dataset.SPA[, 1:2], data = dataset.SPA)
+cabinPoints <- SpatialPointsDataFrame(coords = na.omit(dataset.SPA[, 1:2]), data = na.omit(dataset.SPA[,1:2])
 
 getColor2 <- function(dataset.SPA2) {
   sapply(dataset.SPA2$SampleDate, function(SampleDate) {
@@ -264,9 +270,9 @@ rm(dataset.SPA2)
 ```
 
 
-##Présence de données aberrantes
+## Présence de données aberrantes
 
-###Diagrammes de dispersion des valeurs observées
+### Diagrammes de dispersion des valeurs observées
 
 Les diagrammes de dispersion suivants présentent la valeur des abondances des taxons dans l'ordre à laquelle elles apparaissent dans ce fichier. Sous l'axe des X se trouve l'identifiant de la visite vis-à-vis la valeur observée correspondante, soit le nom du site d'où provient la donnée, sa date d'échantillonnage et le nombre d'échantillonnage pris pour cette donnée.
 
@@ -279,10 +285,10 @@ Les diagrammes de dispersion suivants présentent la valeur des abondances des t
 > - *Un problème avec les données d'abondance est-il apparent?*
 
 
-```{r, echo=FALSE, warning=FALSE}
+```{r 6, echo=FALSE, warning=FALSE}
 #Diagrammes de dispersion des valeurs observées
   
-dataset.BIO2 <- left_join(dataset.BIO2, dataset.NAM2[,c("rownames", "Site_Date_Number")], by = "rownames")
+dataset.BIO2 <- left_join(dataset.BIO2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleId")
 
 for(j in 2:(ncol(dataset.BIO2)-4)){
 plot.ab <- ggplot(dataset.BIO2, aes(x = dataset.BIO2$Site_Date_Number, y = dataset.BIO2[,j])) +
@@ -298,7 +304,7 @@ print(plot.ab)
 
 ```
 
-###Boîtes à moustaches de l'abondance par taxon observée et transformée
+### Boîtes à moustaches de l'abondance par taxon observée et transformée
 
 Pour chaque variable, la première boîte à moustaches (à gauche) illustre la distribution des abondances observées dans le fichier de données et la deuxième boîte à moustaches (à droite) illustre la distribution des abondances observées dans le fichier de données ayant subies une transformation logarithmique.
 
@@ -313,7 +319,7 @@ Pour chaque variable, la première boîte à moustaches (à gauche) illustre la 
 
 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r 7, echo=FALSE, message=FALSE, warning=FALSE}
 #Boîtes à moustaches de l'abondance par taxon observée et transformée
 
 for(i in 1:ncol(dataset.BIO)){
@@ -333,7 +339,7 @@ grid.arrange(box.ab.1, box.ab.2, box.ab.3, ncol = 3, top = colnames(dataset.BIO[
 ```
 
 
-###Identification des données aberrantes potentielles
+### Identification des données aberrantes potentielles
 
 Pour chaque variable, la première boîte à moustaches (à gauche) illustre la distribution des valeurs de variables continues observées dans le fichier de données. Le second graphique est le graphe de Cleveland qui donne plus de détails sur la distribution des valeurs observées. Les valeurs d'abondance sont présentées dans l'ordre d'apparition dans le fichier de données.
 
@@ -378,27 +384,49 @@ La liste suivante présente les données potentiellement aberrantes contenues da
 ```{r, echo=FALSE, warning=FALSE}
 #Identification des données aberrantes potentielles (suite)
 
-for (j in 2:(ncol(dataset.BIO2)-5)) {
-print(colnames(dataset.BIO2[j]))
-list <- list(ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T) | dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, ""))
-slist <- unlist(list)
-list2 <- list(slist[slist != ""])
-print(list2)
+for (j in 2:(ncol(dataset.BIO2)-4)) {
+cat(colnames(dataset.BIO2[j]), "\n")
+#list <- list(ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T) | dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, ""))
+Active_Frame_Bio <- data.frame(ifelse(is.na(dataset.BIO2[,j]), "", ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T) | dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, "")))
+Active_Frame_Bio["Is NA"] = list(ifelse(is.na(dataset.BIO2[,j]), "Yes", "No"))
+colnames(Active_Frame_Bio) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Nombre de données aberrantes potentielles:", length(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",][[1]]), "\n\n")
+}
+
+
+```
+
+```{r 10, echo=FALSE, warning=FALSE}
+#Identification of potential outliers (part 2)
+
+for (j in 2:(ncol(dataset.BIO2)-4)) {
+cat(colnames(dataset.BIO2[j]), "\n")
+#list <- list(ifelse(dataset.BIO2[,j] < quantile(dataset.BIO2[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.BIO2[,j], na.rm = T) | dataset.BIO2[,j] > quantile(dataset.BIO2[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.BIO2[,j], na.rm = T), dataset.BIO2$Site_Date_Number, ""))
+Active_Frame_Bio <- data.frame(ifelse(is.na(dataset.BIO2[,j]), dataset.BIO2$Site_Date_Number, ""))
+Active_Frame_Bio["Is NA"] = list(ifelse(is.na(dataset.BIO2[,j]), "Yes", "No"))
+colnames(Active_Frame_Bio) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Nombre de valeurs averrantes potentielles:", length(Active_Frame_Bio[Active_Frame_Bio$"Site, Date and Number" != "",][[1]]), "\n\n")
 }
 
 ```
 
+## Présence de zéros 
 
-##Présence de zéros 
+Dans les études écologiques, nous devons réfléchir à ce que cela signifie lorsque deux espèces sont conjointement absentes. Cela pourrait nous renseigner sur les caractéristiques écologiques d'un site. Lorsque deux sites ont les mêmes absences conjointes, cela pourrait signifier que les sites sont écologiquement similaires. D'autre part, si une espèce a une distribution très agglomérée, ou est simplement rare, alors les absences conjointes peuvent survenir par hasard et ne rien dire de l'adéquation d'un site donné pour une espèce, de la similarité entre les besoins en habitat des espèces ou de la similarité écologique des sites. Une fréquence élevée de zéros peut donc compliquer considérablement l'interprétation de ces analyses.
 
-###Histogramme de fréquences d'abondances
+### Histogramme de fréquences d'abondances
 
-L'histogramme suivant illustre la distribution des fréquences d'abondances par taxon du fichier de données. Ce graphique permet notamment d'évaluer la quantité de valeurs d'abondances équivalentes à 0 à travers tous les taxons du fichier de données. 
+Les valeurs d'abondance d'un taxon présente généralement une distribution asymétrique qui ressemble à une distribution log-normale, avec de nombreuses valeurs petites à modérées et quelques valeurs extrêmement grandes.
+
+L'histogramme suivant illustre la distribution des fréquences d'abondance des taxons. Ce graphique permet, entre autres, d'évaluer le nombre de valeurs 0 dans l'ensemble de données. 
+
 
 ```{r, echo=FALSE, warning=FALSE}
 #Histogramme de fréquences d'abondances
 
-dataset.BIO[is.na(dataset.BIO)] <- 0
+#dataset.BIO[is.na(dataset.BIO)] <- 0
 
 count.mean <- mean(unlist(dataset.BIO))
 count.sd <- sd(unlist(dataset.BIO))
@@ -417,16 +445,26 @@ graph.count <- ggplot() +
 
 ggiraph(code = print(graph.count), zoom_max = 10, height_svg = 4)
 
-dataset.BIO[dataset.BIO == 0] <- NA
+#dataset.BIO[dataset.BIO == 0] <- NA
 
 ```
 
 
-###Matrice de corrélation des doubles zéros
+### Matrice de corrélation des doubles zéros
 
-La matrice de corrélation suivante illustre la force de corrélation qui existe entre deux taxons présentant des valeurs d'abondances équivalentes à 0 par l'intensité de la couleur. Une corrélation illustrée par la couleur blanche indique une force de corrélation qui tend vers une valeur de 0.5 et une corrélation illustrée par la couleur bleue foncée indique une force de corrélation qui tend vers une valeur de 1. Cette matrice illustre également la proportion de valeurs d'abondances à 0 que présente un taxon par rapport à toutes les valeurs d'abondances observées dans ce dernier. Seulement les taxons présents dans plus de 25% des visites y sont représentés. 
+Nous devons savoir s'il y a des doubles zéros dans les données. Cela signifie que pour chaque paire d'espèces, nous devons calculer combien de fois les deux ont eu une abondance nulle pour le même site.
 
-```{r, echo=FALSE, fig.height=8, fig.width=14}
+La matrice de corrélation suivante (ou *corrgramme*) illustre la fréquence à laquelle les paires de taza ont toutes deux une abondance nulle. La couleur et la quantité de remplissage d'un cercle correspondent à la proportion d'observations comportant des doubles zéros. Une couleur blanche indique une corrélation proche de 0,5 tandis qu'une couleur bleu foncé indique une corrélation proche de 1. Cette matrice illustre également la proportion des valeurs de corrélation. 0 d'un taxon par rapport à l'ensemble des valeurs d'abondance observées dans ce dernier. La diagonale allant du bas à gauche au haut à droite représente le pourcentage d'observations d'un taxon égal à zéro. Seuls les taxons présents dans plus de 25% des visites sont représentés.
+
+> ![ACTION:](../../../Configuration/action.png)
+> *Examiner les points suivants:*
+> 
+> 
+> - *Les données présentent-elles un gradient biologique court ou long ?
+> - *Que signifie la présence de doubles zéros pour les données ?
+
+
+```{r 12, echo=FALSE, fig.height=8, fig.width=14}
 #Matrice de corrélation des doubles zéros entre les taxons - taxons avec fréquence > 25%
 
 dataset.BIO[is.na(dataset.BIO)] <- 0
@@ -491,25 +529,27 @@ levelplot(A1,xlab=NULL,ylab=NULL,
     col.regions=colorRampPalette(c("white","blue")), 
     main = "Force de corrélation entre les variables présentant des doubles zéros")
 
-dataset.BIO[dataset.BIO == 0] <- NA
+#dataset.BIO[dataset.BIO == 0] <- NA
 
 ```
 
 
-##Normalité des données 
+## Normalité des données
 
-###Diagrammes Quantile-Quantile et histogrammes de fréquences
+Diverses techniques statistiques supposent la normalité. Il est important de savoir si la technique statistique à utiliser suppose effectivement la normalité, et que suppose-t-on exactement comme étant normalement distribué? Par exemple, une *analyse en composantes principales* (ACP) n'exige pas de normalité. La *Régression linéaire* suppose effectivement la normalité, mais est raisonnablement robuste contre la violation de vet exigence. Pour d'autres techniques comme l'*analyse discriminante*, la normalité des observations d'une variable particulière au sein de chaque groupe est importante. C'est pourquoi il est toujours recommandé de tester la normalité (entre autres choses) au début de la phase d'analyse des données d'un projet écologique.
+
+### Diagrammes Quantile-Quantile et histogrammes de fréquences
 
 Pour chaque variable, le premier graphique (à gauche) illustre la distribution observée des valeurs par taxon par des points et la distribution normale théorique calculée à partir des paramètres de la distribution observée par une droite. Plus les valeurs observées sont positionnées sur la droite, plus celles-ci sont distribuées selon la loi normale. Le deuxième graphique (à droite) illustre par un histogramme la distribution des fréquences des valeurs observées par taxon. Il permet notamment de vérifier et valider si la distribution des données semble suivre la loi normale. Cet histogramme illustre également l'abondance moyenne par taxon par une ligne pleine ainsi que l'écart-type des abondances par taxon par deux lignes pointillées. 
 
-```{r, echo=FALSE}
+```{r 13, echo=FALSE}
 #Diagrammes Quantile-Quantile et histogrammes de fréquences
 
 for (i in 1:ncol(dataset.BIO)){
-norm.mean <- mean(which(!is.na(dataset.BIO[,i])))
-norm.sd <- sd(which(!is.na(dataset.BIO[,i])))
+norm.mean <- mean(dataset.BIO[,i], na.rm = TRUE)
+norm.sd <- sd(dataset.BIO[,i], na.rm = TRUE)
 norm.n <- length(which(!is.na(dataset.BIO[,i])))
-norm.bin <- ceiling(max(which(!is.na(dataset.BIO[,i])))- min(which(!is.na(dataset.BIO[,i])))/nclass.Sturges(which(!is.na(dataset.BIO[,i]))))
+norm.bin <- ceiling(max(dataset.BIO[,i], na.rm = TRUE) - min(dataset.BIO[,i], na.rm = TRUE)/nclass.Sturges(which(!is.na(dataset.BIO[,i]))))
 
 par(mfrow = c(1,2), mar=c(4,4,3,1))
 
@@ -529,11 +569,13 @@ lines(xfit, yfit_freq, col="red", lwd=1)
 ```
 
 
-###Normalité des données
+### Tests de normalité par taxon
 
-####Tests de normalité par taxon
+Une façon d'examiner la normalité des données est d'utiliser le test de Snows. Pour chaque taxon, ce calcul teste l'hypothèse nulle selon laquelle les données proviennent d'une population normale exacte.
 
-Les résultats suivants présentent le résultat obtenu par un test de Snows appliqué sur chaque variable du fichier de données. Une valeur de P (p-value) inférieure à 0.05 indique qu'il n'est pas possible de supposer que la distribution des données suit la loi normale avec une probabilité de 95%. 
+C'est une hypothèse nulle beaucoup moins intéressante que ce que nous voulons habituellement, c'est-à-dire savoir si les données proviennent d'une distribution suffisamment similaire à la normale pour utiliser l'inférence de la théorie normale.
+
+Une valeur de P (valeur p) inférieure à 0,05 indique qu'il n'est pas possible de supposer que la distribution des données suit la distribution normale avec une probabilité de 95%. 
 
 ```{r, echo=FALSE, warning=FALSE}
 #Tests de normalité de Snows par variable 
@@ -543,7 +585,7 @@ apply(dataset.BIO, 2, SnowsPenultimateNormalityTest)
 ```
 
 
-####Occurence en taxons
+## Occurence en taxons
 
 Dans combien de sites chaque taxon est-il présent? 
 
@@ -553,7 +595,7 @@ Par la suite, deux graphiques sont proposés. Le premier graphique (à gauche) i
 
 Un examen de ces deux graphiques permet notamment de vérifier si la distribution des données semble suivre la loi normale. Si la distribution des données sur le deuxième graphique semble ressembler davantage à une distribution normale, une transformation logarithmique des données pourrait être nécessaire. 
 
-```{r, echo=FALSE, warning=FALSE}
+```{r 15, echo=FALSE, warning=FALSE}
 #Histogrammes de l'occurrence en taxons
 
 spe.pres <- apply(dataset.BIO > 0, 2, sum, na.rm = TRUE)
@@ -617,7 +659,7 @@ grid.arrange(graph.pres1, graph.pres2, ncol = 2)
 
 Les graphiques suivants sont similaires aux précédents mais pour les fréquences relatives. 
 
-```{r, echo=FALSE, warning=FALSE}
+```{r 16, echo=FALSE, warning=FALSE}
 #Histogrammes de fréquences relatives en taxons
 
 spe.relf <- 100*spe.pres/nrow(dataset.BIO)
@@ -679,11 +721,11 @@ grid.arrange(graph.relf1, graph.relf2, ncol = 2)
 ```
 
 
-####Boîtes à moustaches d'occurrences en taxons
+### Boîtes à moustaches d'occurrences en taxons
 
 La première boîte à moustaches (à gauche) illustre la distribution des occurrences calculées à partir du fichier de données et la deuxième boîte à moustaches (à droite) illustre la distribution des occurrences calculées à partir du fichier de données ayant subies une transformation logarithmique.
 
-```{r, echo=FALSE}
+```{r 17, echo=FALSE}
 #Boîtes à moustaches d'occurrences en taxons
 
 box.pres1 <- qplot(y = spe.pres, x = "", geom = "boxplot", ylab = "Occurrence", main = "Distribution des occurrences en taxons") + 
@@ -697,7 +739,7 @@ grid.arrange(box.pres1, box.pres2, ncol = 2)
 
 Les graphiques suivants sont similaires aux précédents mais pour les fréquences relatives
 
-```{r, echo=FALSE}
+```{r 17, echo=FALSE}
 #Boîtes à moustaches de fréquences relatives en taxons
 
 box.relf1 <- qplot(y = spe.relf, x = "", geom = "boxplot", ylab = "Fréquence d'occurrence (%)", main = "Distribution des fréquences\nrelatives en taxons") + 
@@ -710,21 +752,24 @@ grid.arrange(box.relf1, box.relf2, ncol = 2)
 ```
 
 
-##Indépendance des taxons
+## Indépendance des taxons
 
-###Matrice de corrélation entre les taxons
+### Matrice de corrélation entre les taxons
 
 La matrice de corrélation suivante illustre la relation qui existe entre deux taxons par la présence d'une courbe. Elle permet notamment de vérifier et valider la présence de corrélation entre des taxons. Seulement les taxons présents dans plus de 25% des visites y sont représentés. 
 
 ```{r, echo=FALSE}
 #Matrice de corrélation entre les variables - taxons avec fréquence > 25%
 
-PlotMatrix(Benthos25, panel = panel.smooth)
+GGally::ggpairs(Benthos25, progress=F)
+for(i in 1:ceiling(length(Benthos25)/4)){for(j in 1:ceiling(length(Benthos25)/4)){print(ggduo(Benthos25, columnsX=((i*4-3):(i*4))[((i*4-3):(i*4))<=length(Benthos25)], columnsY=((j*4-3):(j*4))[((j*4-3):(j*4))<=length(Benthos25)]))}}
+
+#PlotMatrix(Benthos25, panel = panel.smooth)
 
 ```
 
 
-###Matrice de corrélation de Pearson globale
+### Matrice de corrélation de Pearson globale
 
 La matrice de corrélation suivante illustre la force de corrélation qui existe entre deux taxons par l'intensité de la couleur. Une corrélation illustrée par la couleur blanche indique une force de corrélation qui tend vers une valeur de 0 et une corrélation illustrée par la couleur bleue foncée indique une force de corrélation qui tend vers une valeur de 1. Les valeurs de corrélation de Pearson entre les taxons y sont indiquées dans la portion inférieure gauche de la figure. Cette matrice illustre également la proportion de valeurs d'abondances non égales à 0 que présente un taxon par rapport à toutes les valeurs d'abondances observées dans ce dernier. Seulement les taxons présents dans plus de 25% des visites y sont représentés. 
 
@@ -737,18 +782,18 @@ corrgram(Benthos25, order = FALSE, lower.panel = panel.cor, upper.panel = panel.
 
 
 
-###Abondance des taxons dans le temps
+### Abondance des taxons dans le temps
 
 Il peut être intéressant d'examiner l'évalution de l'abondance des taxons dans le temps afin d'observer des dynamiques ou des changements abrutes.
 
 Pour chaque taxon, le premier graphique (en haut à gauche) illustre la valeur d'abondance des données selon leur année d'échantillonnage. Le deuxième graphique (en haut à droite) illustre les tendances observées de variations des abondances en individus dans le temps. Le troisième graphique (en bas à gauche) illustre les prévisions futures de variations des abondances en individus dans le temps. Sur ce graphique la ligne bleue correspond à la tendance attendue moyenne de variations dans le temps, la zone grise foncée correspond à un intervalle de confiance de 80% et la zone grise pâle correspond à un intervalle de confiance de 95%. Le quatrième graphique (en bas à droite) illustre l'autocorrélation de séries temporelles (ACF). Une valeur d'autocorrélation  supérieure à l'intervalle de confiance de 95% illustrée par la ligne pointillée indique une possible dépendance entre la variable et la période de l'année (temps). Par exemple, une certaine valeur d'abondance d'un taxon observée lors d'une année précise pourrait être expliquée par un certain événement datant d'une année antérieure (décalage dans le temps en années). Il est à noter que l'autocorrélation au temps de décalage 0 est, par définition, égale à 1.
 
-```{r, echo=FALSE}
+```{r 21, echo=FALSE}
 #Indépendance temporelle des taxons
 
-dataset.BIO2 <- left_join(dataset.BIO2, dataset.NAM2[,c("rownames", "SampleDate")], by = "rownames")
+dataset.BIO2 <- left_join(dataset.BIO2, dataset.NAM2[,c("SampleId", "SampleDate")], by = "SampleId")
 
-dataset.BIO2[is.na(dataset.BIO2)] <- 0
+#dataset.BIO2[is.na(dataset.BIO2)] <- 0
 
 for(i in 2:(ncol(dataset.BIO2)-5)){
   par(mfrow = c(2, 2), mar = c(4,4,4,1))
@@ -763,16 +808,16 @@ for(i in 2:(ncol(dataset.BIO2)-5)){
   graph.lag <- acf(graph.time2, xlab = "Décalage (années)", ylab = "Abondance", main = paste("ACF de", colnames(dataset.BIO2[i])), ylim = c(0, 1))
 }
 
-dataset.BIO2[dataset.BIO2 == 0] <- NA
+#dataset.BIO2[dataset.BIO2 == 0] <- NA
 
 ```
 
 Les résultats suivants présentent le calcul du test de la statistique de Box-Ljung appliqué sur chaque taxon et sont complémentaires aux résultats illustrés par les graphiques précédents. Une valeur de P (p-value) inférieure à 0.05 indique que les valeurs résiduelles d'une variable dépendent de la période de l'année (temps).
 
-```{r, echo=FALSE}
+```{r 22, echo=FALSE}
 #Indépendance temporelle des taxons (suite)
 
-dataset.BIO2[is.na(dataset.BIO2)] <- 0
+#dataset.BIO2[is.na(dataset.BIO2)] <- 0
 
 for(i in 2:(ncol(dataset.BIO2)-5)){
   graph.time2 <- ts(dataset.BIO2[,i], frequency = 12, start = c(2005-01-01), end = c(2016-01-01))
@@ -782,52 +827,53 @@ for(i in 2:(ncol(dataset.BIO2)-5)){
   print(box)
 }
 
-dataset.BIO2[dataset.BIO2 == 0] <- NA
+#dataset.BIO2[dataset.BIO2 == 0] <- NA
 
 ```
 
 
-###Corrélation spatiale des taxons
+### Corrélation spatiale des taxons
 
 Les résultats suivants présentent les résultats d'autocorrélation spatiale appliquée sur chaque variable. Une valeur de P (p-value) inférieure à 0.05 permet de supposer que la distribution spatiale des valeurs font l'objet d'une agrégation spatiale non aléatoire. Lorsque la valeur de P (p-value) est inférieure à 0.05, un indice de Moran (I de Moran I) positif indique que les valeurs sont aggrégés entre elles tandis qu'un indice de Moran négatif indique que les valeurs sont dispersées entre elles. 
 
-```{r, echo=FALSE}
+```{r 23, echo=FALSE}
 ##Indépendance spatiale des taxons
 
-dataset.BIO2[is.na(dataset.BIO2)] <- 0
+#dataset.BIO2[is.na(dataset.BIO2)] <- 0
 
 bio.dists <- as.matrix(dist(cbind(dataset.BIO2$Latitude, dataset.BIO2$Longitude)))
+bio.dists[which(sapply(bio.dists, is.na))] <- 0 
 bio.dists.inv <- 1/bio.dists
 diag(bio.dists.inv) <- 0
 bio.dists.inv[is.infinite(bio.dists.inv)] <- 0
 lw <- mat2listw(bio.dists.inv)
-lwW <- nb2listw(lw$neighbours, glist=lw$weights, style="W")
+lwW <- nb2listw(lw$neighbours, glist=lw$weights, style="W", zero.policy = T)
 
 for(j in 2:(ncol(dataset.BIO2)-5)){
-print(paste(colnames(dataset.BIO2[j])))
-moran.test <- moran.test(dataset.BIO2[,j], lwW, alternative="two.sided") 
-print(moran.test)
+  print(paste(colnames(dataset.BIO2[j])))
+  moran.test <- moran.test(dataset.BIO2[,j], lwW, alternative="two.sided", zero.policy = T) 
+  print(moran.test)
 }
 
-dataset.BIO2[dataset.BIO2 == 0] <- NA
+#dataset.BIO2[dataset.BIO2 == 0] <- NA
 
 ```
 
 
-##Diversité
+## Diversité
 
-###Tableau des indices de diversité en taxons
+### Tableau des indices de diversité en taxons
 
 Le tableau suivant présente le calcul de plusieurs indices de diversité en taxons calculés pour chaque visite. 
 
-```{r, echo=FALSE}
+```{r 24, echo=FALSE}
 #Tableau des indices de diversité en taxons
 
 #Richesse en taxons
 N0 <- rowSums(dataset.BIO > 0, na.rm = TRUE)
 
 #Entropie de Shannon
-dataset.BIO[is.na(dataset.BIO)] <- 0
+#dataset.BIO[is.na(dataset.BIO)] <- 0
 H <- diversity(dataset.BIO)
 
 #Diversité de Shannon (nombre de taxons abondants effectif)
@@ -847,12 +893,12 @@ E20 <- N2/N0
 
 #Tableau de la diversité en taxons
 #(div <- data.frame(N0, H, N1, N2, E10, E20, J))
-dataset.BIO[dataset.BIO == 0] <- NA
+#dataset.BIO[dataset.BIO == 0] <- NA
 
-div <- data.frame(N0, H, N1, N2, J, E10, E20)
-div <- rownames_to_column(div, var = "rownames")
-div <- left_join(div, dataset.NAM2[,c("rownames", "Site_Date_Number")], by = "rownames")
-div$rownames <- NULL
+div <- data.frame(N0, H, N1, N2, J, E10, E20, dataset.BIO2$Site_Date_Number)
+#div <- rownames_to_column(div, var = "rownames")
+#div <- left_join(div, dataset.NAM2[,c("rownames", "Site_Date_Number")], by = "rownames")
+#div$rownames <- NULL
 
 {div <- div[, c(8,1,2,3,4,5,6,7)]
 #div
@@ -866,16 +912,16 @@ names(div)[7] <- "Indice de Shannon"
 names(div)[8] <- "Indice de Simpson"
 }
 
-formattable(div, digits = 3, align = "c")
+datatable(div, filter = "top", rownames=F, options = list(scrollX = TRUE ))
 
 rm(dataset.NAM2)
 ```
 
 
-###Histogrammes de l'occurrence de la diversité
+### Histogrammes de l'occurrence de la diversité
 
 
-```{r, echo=FALSE}
+```{r 25, echo=FALSE}
 #Histogrammes de l'occurrence de la diversité de Shannon
 
 #N1
@@ -1023,6 +1069,6 @@ sessionInfo()
 
 ***
 
-Développé par [Martin Jean](mailto:martin.jean@canada.ca) et Evelyne Paquette-Boisclair
+Développé par [Martin Jean](mailto:martin.jean@canada.ca), Evelyne Paquette-Boisclair, et Eva Charbonneau-Bérubé
 
 

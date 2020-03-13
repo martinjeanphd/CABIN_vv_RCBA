@@ -46,17 +46,17 @@ source("../../../Required_functions.R")
 
 ## Project Preferences
 source("../../../Configuration/project_settings.R")
-options(device = windows)
+#options(device = windows)
 ```
 
 
-This report presents the results for verification and validation of a CABIN spatial data file associated to the project **`r paste(datasetName)`**.
+This report presents the results for verification and validation of a CABIN general data file associated to the project **`r paste(analysisTitle)`**.
 
-This notebook assumes that you have imported your data into *R* using the import notebook (CABIN_vv_import.Rmd).
+This notebook assumes that you have imported your data into *R* using the import notebook *CABIN_vv_import.Rmd*.
 
 The dataset containing general data for this project is **`r if(is.data.frame(dataset.GEN)) "present" else "absent. Please open and execute the 'CABIN_vv_import.Rmd' notebook before running this notebook"`**.
 
-##Descriptive Statistics
+## Descriptive Statistics
 
 The data file contains `r {nrow(dataset.GEN)}` visits (lines) and `r {ncol(dataset.GEN)}` variables (columns).
 
@@ -92,7 +92,7 @@ The following table presents a subset of the data.
 > *Check the variables above and make sure they are all present.
 
 
-###General Statistics
+### General Statistics
 
 The following table shows the main general parameters per variable. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable.
 
@@ -140,7 +140,7 @@ datatable(summary.GEN, filter = "top", rownames =T, options = list(scrollX = TRU
 
 
 
-###Frequency Distribution
+### Frequency Distribution
 
 The following tables show the list of values observed by variable and their frequency within the general data file. These tables make it possible in particular to verify and validate the uniformity of the value naming for categorical variables observed in the data file. If the same value is listed twice in the same frequency table, it is possible that one of these values was written with one or more spaces before or after the word, which could explain the difference in the spelling of values that was detected by the software.
 
@@ -152,7 +152,7 @@ The following tables show the list of values observed by variable and their freq
 
 
 
-####Taxonomists
+#### Taxonomists
 
 
 ```{r, echo=FALSE}
@@ -177,7 +177,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 ```
 
 
-####Study
+#### Study
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -190,7 +190,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Sites
+#### Sites
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -203,7 +203,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Sample Date
+#### Sample Date
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -216,7 +216,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Year
+#### Year
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -229,7 +229,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Julian Day
+#### Julian Day
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -242,7 +242,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Name
+#### Name
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -255,7 +255,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Basin
+#### Basin
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -268,7 +268,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Know Your Watershed Name
+#### Know Your Watershed Name
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -281,7 +281,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Ecoregion
+#### Ecoregion
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -294,7 +294,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Study
+#### Study
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -307,7 +307,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Province
+#### Province
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -320,7 +320,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Device
+#### Device
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -333,7 +333,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Sample Status
+#### Sample Status
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -346,7 +346,7 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-####Stream Order
+#### Stream Order
 
 ```{r, echo=FALSE}
 #Frequency Tables
@@ -359,9 +359,9 @@ datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRU
 
 ```
 
-##Presence of Outliers
+## Presence of Outliers
 
-###Dispersion of Observed Values
+### Dispersion of Observed Values
 
 The following scatterplots present the value of the continuous variable data observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
 
@@ -375,7 +375,7 @@ The following scatterplots present the value of the continuous variable data obs
 
 #Creation of the proper dataframe with row names and visits
 dataset.GEN2 <- dataset.GEN
-dataset.GEN2$Site_Date_Number <- paste(dataset.GEN2$Site, "_", dataset.GEN2$SampleDate, "_", dataset.GEN2$SampleId)
+dataset.GEN2$Site_Date_Number <- paste(dataset.GEN2$Site, "_", dataset.GEN2$SampleDate, "_", dataset.GEN2$SampleNumber)
 
 #Creation of a subset of numerical variables
 dataset.GENnum <- dataset.GEN2[, c("SampleId", "Site_Date_Number", "Year", "JulianDay", "Altitude", "StreamOrder", "SubSample", "TotalSample")]
@@ -394,7 +394,7 @@ print(plot.ab)
 
 ```
 
-###Boxplots of Observed and Transformed Values
+### Boxplots of Observed and Transformed Values
 
 The first boxplot (left) shows the distribution of continuous variable values observed in the data file, and the second box plot (right) shows the distribution of the logarithmic-transformed values.
 
@@ -419,7 +419,7 @@ grid.arrange(box.ab.1, box.ab.2, ncol = 2)
 
 ```
 
-###Identification of Potential Outliers
+### Identification of Potential Outliers
 
 The first boxplot (left) shows the distribution of continuous variable values observed in the dataset and the dispersion diagram (right) show the distribution of observed continuous variable values in the order in which they appear in this file. Data with identification by their identifier on the diagrams are potentially outliers contained in the dataset. The method used to identify potentially outliers is the interquantile range (*IQR*). The IQR is calculated as follows:
 

@@ -391,8 +391,8 @@ dataset.SPA <- unique(rbind(dataset.SPAb, dataset.SPAe))
 dataset.SPA <- arrange(dataset.SPA, SampleId)
 dataset.SPA[colnames(dataset.SPA) %in% blacklist] <- NULL
 dataset.SPA2 <- dataset.SPA
-NA.SPA <- get.NArows(dataset.SPA)
-NA.SPA <- inner_join(NA.SPA, dataset.NAM2, by = "SampleId")
+#NA.SPA <- get.NArows(dataset.SPA)
+#NA.SPA <- inner_join(NA.SPA, dataset.NAM2, by = "SampleId")
 rm(dataset.SPAb)
 rm(dataset.SPAe)
 paste("Un tableau de coordonnées géographiques créé à partir d'un extrait des fichiers", bioFilename, "et", envFilename)

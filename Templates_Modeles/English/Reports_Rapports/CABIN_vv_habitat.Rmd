@@ -17,7 +17,7 @@ version: '1.1'
 | ![](../../../Configuration/gc_en.png)  |  ![](../../../Configuration/cabin_logo.png) |
 |:------------------------------------|--------------------------------------:|                            
 
-#CABIN VERIFICATION AND VALIDATION - HABITAT DATA
+# CABIN VERIFICATION AND VALIDATION - HABITAT DATA
 
 *Environment and Climate Change Canada*
 
@@ -34,7 +34,7 @@ In this analysis, the habitat dataset is checked to answer the following questio
 This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.com). When you execute the code embedded in the notebook, the results will appear under the corresponding code. To do this, place your cursor inside a chunk (box which contains *R* code) and click the green arrow to the right of it named *Run Current Chunk* or press *Ctrl+Shift+Enter* (*Cmd+Shift+Enter* in *macOS*) on your keyboard. Repeat for each chunk. As the code contained in this notebook is executed, the results will appear under each of the corresponding chunks in this window. Once all commands are executed, click the *Preview* button at the top left of this window or press the *Ctrl+Shift+K* keys (*Cmd+Shift+K* in *macOS*). A new window will appear and will contain the report of these verification and validation results for the general CABIN data.
 
 
-##Requirements
+## Requirements
 
 ```{r setup, include=FALSE}
 ## Required Packages and Custom Functions
@@ -44,7 +44,6 @@ source("../../../Required_functions.R")
 
 ## Project Preferences
 source("../../../Configuration/project_settings.R")
-
 
 ```
 This notebook assumes that you have imported your data into *R* using the import notebook (CABIN_vv_import.Rmd).
@@ -87,7 +86,7 @@ The following table presents a subset of the data.
 > *Check the variables above and make sure they are all present.
 
 
-###General Statistics
+### General Statistics
 
 The following tables show the main general parameters per variable. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable. The first table presents numeric data, the second, binary, and the third, other or unidentified data.
 
@@ -116,9 +115,9 @@ datatable(summary.ENV[which(Var_Type[match(colnames(summary.ENV), Var_Type[,1]),
 > ![ACTION:](../../../Configuration/action.png)
 > *Check the data and make sure it reflects reality. Examine statistics and identify, if present, anomalies with statistics.
 
-##Location of Habitat Data
+## Location of Habitat Data
 
-###Geographical Distribution of Habitat Variables
+### Geographical Distribution of Habitat Variables
 
 The following graphs show the location (latitude and longitude) and the observed value for variables saved in the habitat data file.
 
@@ -182,7 +181,7 @@ rm(Other_ENV2)
 
 ```
 
-###Map of Altitude
+### Map of Altitude
 
 The following interactive map shows an the distribution of altitude. Click on a label for more info.
 
@@ -210,9 +209,9 @@ rm(dataset.SPA2)
 
 ```
 
-##Presence of Outliers
+## Presence of Outliers
 
-###Dispersion of Observed Values
+### Dispersion of Observed Values
 
 The following scatterplots present the value of the continuous variable data observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
 
@@ -503,9 +502,9 @@ cat("Number of Potential Outliers:", length(Active_Frame_Other_Env[Active_Frame_
 
 ```
 
-##Data Normality 
+## Data Normality 
 
-###Quantile-Quantile Diagrams and Frequency Histograms
+### Quantile-Quantile Diagrams and Frequency Histograms
 
 For each variable, the first graph (left) shows the observed distribution of variable values by points and the theoretical normal distribution calculated from the parameters of the distribution observed by a straight line. The more the observed values are positioned along the line, the more they are distributed according to the normality.
 
@@ -642,7 +641,7 @@ The third graph (right) illustrates the frequency distribution of the observed v
  }
 ```
 
-###Boxplots of Observed Values
+### Boxplots of Observed Values
 
 For each variable, the first boxplot (left) shows the distribution of observed values in the data file whereas the second boxplot (right) shows the distribution of observed values in the data file that has undergone logarithmic transformation.
 
@@ -688,7 +687,7 @@ box.ab.2 <- qplot(y = Other_ENV2[,i], x = "", geom = "boxplot", ylab = "Log(Valu
 grid.arrange(box.ab.1, box.ab.2, ncol = 2, top = colnames(Other_ENV2[i]))}
 ```
 
-###Normality Tests
+### Normality Tests
 
 Les résultats suivants présentent le résultat obtenu par un test de Snows appliqué sur chaque variable du fichier de données. Une valeur de P (p-value) inférieure à 0.05 indique qu'il n'est pas possible de supposer que la distribution des données suit la loi normale avec une probabilité de 95%. 
 
@@ -703,9 +702,9 @@ apply(Other_ENV2, 2, SnowsPenultimateNormalityTest)
 
 ```
 
-##Collinearity of Variables
+## Collinearity of Variables
 
-###Scatterplot Matrix
+### Scatterplot Matrix
 
 The following scatterplot matrix illustrates the relationship between pairs of variables. It helps to detect the presence of correlations between variables.
 
@@ -760,7 +759,7 @@ Other_ENV2 <- Other_ENV2_bk
 
 ```
 
-###Temporal Independence of Variables
+### Temporal Independence of Variables
 
 For each variable, the first graph (top left) shows the observed value of the data according to their sampling year. The second graph (top right) illustrates the observed trends in changes in data values over time. The third graph (bottom left) shows future forecasts of changes in values over time. On this graph, the blue line corresponds to the expected average trend of changes over time, the dark gray zone corresponds to a confidence interval of 80% and the pale gray zone corresponds to a 95% confidence interval. The fourth graph (bottom right) illustrates time series autocorrelation (ACF). An autocorrelation value greater than the 95% confidence interval illustrated by the dotted line indicates a possible dependency between the variable and the time of year (time). For example, a certain value of a variable observed in a given year could be explained by a certain event from a previous year (lag in time in years). It should be noted that the autocorrelation at offset time 0 is, by definition, equal to 1.
 
@@ -912,4 +911,4 @@ Added suggestions of actions to help in the verification and validation of habit
 
 ***
 
-Developed by [Martin Jean](mailto:martin.jean@canada.ca) and Evelyne Paquette-Boisclair
+Developed by [Martin Jean](mailto:martin.jean@canada.ca), Evelyne Paquette-Boisclair, and Eva Charbonneau-Bérubé

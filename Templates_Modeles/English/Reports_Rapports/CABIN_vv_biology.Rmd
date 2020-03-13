@@ -19,7 +19,7 @@ version: '1.1'
 |:------------------------------------|--------------------------------------:|                            
 
 
-#CABIN VERIFICATION AND VALIDATION - BIOLOGICAL DATA
+# CABIN VERIFICATION AND VALIDATION - BIOLOGICAL DATA
 
 *Environment and Climate Change Canada*
 
@@ -37,7 +37,7 @@ This document is a R notebook written in [R Markdown](http://rmarkdown.rstudio.c
 
 
 
-##Requirements
+## Requirements
 
 ```{r 1, include=FALSE}
 ## Required Packages and Custom Functions
@@ -53,7 +53,7 @@ source("../../../Configuration/project_settings.R")
 
 ```
 
-##Descriptive Statistics
+## Descriptive Statistics
 
 The data file contains `r {nrow(dataset.BIO)}` visits (lines) and `r {ncol(dataset.BIO)}` variables (columns).
 
@@ -91,7 +91,7 @@ The following table presents a subset of the data.
 > *Examine the variables above and make sure they are all present.
 
 
-##General Statistics
+## General Statistics
 
 The following table shows the main general parameters per variable. When the result on the *BinaryData* line of the array is *TRUE*, this indicates that the variable has binary data. However, this result can also be obtained because the variable has only one to two values at most. The *Na.values* line indicates the number of missing values for each variable.
 
@@ -120,10 +120,10 @@ datatable(summary.BIO, filter = "top", rownames=F, options = list(scrollX = TRUE
 > - *Examine the data and make sure it reflects reality. Examine statistics and identify, if present, anomalies with statistics.*
 
 
-##Geographical Distribution
+## Geographical Distribution
 
 
-###Taxa Distribution
+### Taxa Distribution
 
 The following graphs show the location (latitude and longitude) ainsi que l'abondance en taxons des sites observées dans le fichier de données pour chaque taxon.
 
@@ -147,13 +147,13 @@ if("Latitude.y" %in% colnames(dataset.BIO2)){dataset.BIO2$Latitude.y <- NULL}
 size <- dataset.BIO2[(2:ncol(dataset.BIO2))-2]
 
 for(i in 2:(ncol(dataset.BIO2)-2)){
-graph.geo.ab <- ggplot(dataset.BIO2, aes(dataset.BIO2$Longitude, dataset.BIO2$Latitude)) +
-  geom_point(shape = 21, aes(size = size[,i])) + #Broken on ggplot2 3.2.0, 3.1.0, 3.0.0
-  ggtitle(paste("Distribution of", colnames(dataset.BIO2[i]))) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_size(range = c(1,10), name = "Abundance")
-graph.geo.ab
-print(graph.geo.ab)
+  graph.geo.ab <- ggplot(dataset.BIO2, aes(dataset.BIO2$Longitude, dataset.BIO2$Latitude)) +
+    geom_point(shape = 21, aes(size = size[,i])) + #Broken on ggplot2 3.2.0, 3.1.0, 3.0.0
+    ggtitle(paste("Distribution of", colnames(dataset.BIO2[i]))) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_size(range = c(1,10), name = "Abundance")
+  graph.geo.ab
+  print(graph.geo.ab)
 }
 
 rm(size)
@@ -162,7 +162,7 @@ rm(dataset.GEN2)
 ```
 
 
-###Richness Distribution
+### Richness Distribution
 
 The following graphs show the location (latitude and longitude) and taxa richness on sites.
 
@@ -176,7 +176,7 @@ The following graphs show the location (latitude and longitude) and taxa richnes
 
 
 ```{r 4, echo=FALSE}
-#Geographica Distribution of taxa richness
+#Geographical Distribution of taxa richness
 
 dataset.BIO2$richness <- apply(dataset.BIO > 0, 1, sum, na.rm=TRUE)
 dataset.SPA2 <- dataset.SPA
@@ -201,12 +201,12 @@ The following interactive map illustrates the same data as the above graph. Clic
 #Map of taxa richness
 
 dataset.NAM2 <- dataset.NAM
-dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, dataset.NAM2$SampleDate, dataset.NAM2$SampleId)
+dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, dataset.NAM2$SampleDate, dataset.NAM2$SampleNumber)
 dataset.SPA2 <- dataset.SPA
 dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleId")
 dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate")], by = "SampleId")
 dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[, c("SampleId", "richness")], by = "SampleId")
-dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleId)
+dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleNumber)
 dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
 dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
 dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
@@ -267,9 +267,9 @@ rm(dataset.SPA2)
 ```
 
 
-##Presence of Outliers
+## Presence of Outliers
 
-###Dispersion of Observed Values
+### Dispersion of Observed Values
 
 The following scatterplots present the value of the taxa abundances observed in the dataset. Below the x-axis is the visit identifier for the corresponding observed value, namely the name of the site from which the data originated, its sampling date and the sampling number.
 
@@ -293,7 +293,7 @@ plot.ab <- ggplot(dataset.BIO2, aes(x = dataset.BIO2$Site_Date_Number, y = datas
   geom_point() +
   labs(y = "Abondunce", x = "Visit") +
   theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
-   scale_x_discrete(breaks = "", labels = "", na.value = NA) +
+   scale_x_discrete(breaks = ifelse(!is.na(dataset.BIO2[,j]), dataset.BIO2$Site_Date_Number, ""), labels = ifelse(!is.na(dataset.BIO2[,j]), dataset.BIO2$Site_Date_Number, ""), na.value = NA) +
   theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(paste("Abundance of", colnames(dataset.BIO2[j]), "per visit"))
 plot.ab
@@ -302,7 +302,7 @@ print(plot.ab)
 
 ```
 
-###Boxplots of Observed and Transformed Values
+### Boxplots of Observed and Transformed Values
 
 The first boxplot (left) shows the distribution of continuous variable values observed in the data file, the middle illustrates the distribution of the logarithmic-transformed values, and the third box plot (right) shows the distribution of the square-root-transformed values.
 
@@ -334,7 +334,7 @@ grid.arrange(box.ab.1, box.ab.2, box.ab.3, ncol = 3, top = colnames(dataset.BIO[
 ```
 
 
-###Identification of potential outliers
+### Identification of potential outliers
 
 The first boxplot (left) shows the distribution of abundance values observed in the dataset and the dispersion diagram (right) show the distribution of abundance values in the order in which they appear in this file. Data with identification by their identifier on the diagrams are potentially outliers contained in the dataset. The method used to identify potentially outliers is the interquantile range (*IQR*). The IQR is calculated as follows:
 
@@ -412,11 +412,11 @@ cat("Number of Missing Values:", length(Active_Frame_Bio[Active_Frame_Bio$"Site,
 
 ```
 
-##Presence of zeros 
+## Presence of zeros 
 
 In ecological studies, we need to consider what it means when two species are jointly absent. This could say something important about the ecological characteristics of a site. When two sites both have the same joint absences, this might mean that the sites are ecologically similar. On the other hand, if a species has a highly clumped distribution, or is simply rare, then joint absences might arise through chance and say nothing about the suitability of a given site for a species, the similarity among the habitat needs of species or the ecological similarity of sites. A high frequency of zeros, thus, can greatly complicate interpretation of such analyses.
 
-###Abundance Frequency Distribution
+### Abundance Frequency Distribution
 
 Abundance values a taxa commonly show a skew distribution that looks like a log-normal distribution, with many small to moderate values and a few extremely large values.
 
@@ -451,7 +451,7 @@ ggiraph(code = print(graph.count), zoom_max = 10, height_svg = 4)
 ```
 
 
-###Presence of double-zeros
+### Presence of double-zeros
 
 We need to know whether there are double zeros in the data. This means that for each species-pair, we need to calculate how often both had zero abundance for the same site.
 
@@ -535,11 +535,11 @@ levelplot(A1,xlab=NULL,ylab=NULL,
 ```
 
 
-##Data Normality 
+## Data Normality 
 
 Various statistical techniques assume normality. It is important to know whether the statistical technique to be used does assume normality, and what exactly is assumed to be normally distributed? For example, a *Principal component analysis* (PCA) does not require normality. *Linear regression* does assume normality, but is reasonably robust against violation of the assumption. For other techniques like *discriminant analysis*, normality of observations of a particular variable within each group is important. Therefore, testing for normality (among other things) is always recommanded when starting the data analysis phase of an ecological project.
 
-###Quantile-Quantile (Q-Q) plots and et frequency histograms
+### Quantile-Quantile (Q-Q) plots and et frequency histograms
 
 For each variable, the first graph (left) illustrates by points the observed distribution of taxon values and the theoretical normal distribution calculated from the parameters of the distribution observed by a line. The more the values observed are positioned on the right, the more these are distributed according to the normal law. The second graph (right) shows a histogram the frequency distribution of the values observed by taxon. It allows to verify and validate if the data distribution seems to follow the normal distribution. This histogram also illustrates the mean abundance per taxon by a solid line as well as the standard deviation of abundances per taxon by two dotted lines.
 
@@ -570,7 +570,7 @@ lines(xfit, yfit_freq, col="red", lwd=1)
 ```
 
 
-####Normality test by taxon
+### Normality test by taxon
 
 One way to examine the normality of data is to use the Snows test. For each taxon, this calculation tests the null hypothesis that the data comes from an exact normal population.
 
@@ -586,7 +586,7 @@ apply(dataset.BIO, 2, SnowsPenultimateNormalityTest)
 ```
 
 
-####Taxa Occurences
+## Taxa Occurences
 
 At how many sites does each taxon occur?
 
@@ -722,11 +722,9 @@ grid.arrange(graph.relf1, graph.relf2, ncol = 2)
 ```
 
 
-####Boxplots for taxa occurences
+### Boxplots for taxa occurences
 
 The first boxplot (left) illustrates the distribution of occurrences calculated from the data file whereas the second (right) shows the distribution of occurrences calculated from the log transformed data file.
-
-
 
 ```{r 17, echo=FALSE}
 #Boxplot for taxa occurences
@@ -755,9 +753,9 @@ grid.arrange(box.relf1, box.relf2, ncol = 2)
 ```
 
 
-##Taxa Independence
+## Taxa Independence
 
-###Correlation matrix between taxa
+### Correlation matrix between taxa
 
 The following correlation matrix shows the relationship between all pairs of taxa. It allows to verify the presence of co-occurence between taxa. Only taxa present in more than 25% of the visits are shown. 
 
@@ -769,7 +767,7 @@ for(i in 1:ceiling(length(Benthos25)/4)){for(j in 1:ceiling(length(Benthos25)/4)
 ```
 
 
-###Pearson Correlation Matrix
+### Pearson Correlation Matrix
 
 The following correlation matrix illustrates the correlation strength that exists between two taxa by the intensity of the color. A correlation illustrated by the white color indicates a correlation force that tends to a value of 0 and a correlation illustrated by the dark blue color indicates a correlation force that tends to a value of 1. Pearson correlation values between taxa are shown in the lower left portion of the figure. This matrix also illustrates the proportion of non-zero abundance values that a taxon has with respect to all the abundance values observed in the latter. Only taxa present in more than 25% of the visits are shown.
 
@@ -781,7 +779,7 @@ corrgram(Benthos25, order = FALSE, lower.panel = panel.cor, upper.panel = panel.
 ```
 
 
-###Taxa Abundance through Time
+### Taxa Abundance through Time
 
 It could be interesting to look at the abundance of taxa through time to see dynamics or abrupt changes.
 
@@ -834,7 +832,7 @@ for(i in 2:(ncol(dataset.BIO2)-5)){
 ```
 
 
-###Spatial Correlation
+### Spatial Correlation
 
 The following results present the spatial autocorrelation results applied to each variable. A value of P (p-value) less than 0.05 makes it possible to assume that the spatial distribution of the values is subject to non-random spatial aggregation. When the value of P (p-value) is less than 0.05, a positive Moran index (Moran's I) indicates that the values are aggregated with each other while a negative Moran index indicates that the values are scattered between them.
 
@@ -852,9 +850,9 @@ lw <- mat2listw(bio.dists.inv)
 lwW <- nb2listw(lw$neighbours, glist=lw$weights, style="W", zero.policy = T)
 
 for(j in 2:(ncol(dataset.BIO2)-5)){
-print(paste(colnames(dataset.BIO2[j])))
-moran.test <- moran.test(dataset.BIO2[,j], lwW, alternative="two.sided", zero.policy = T) 
-print(moran.test)
+  print(paste(colnames(dataset.BIO2[j])))
+  moran.test <- moran.test(dataset.BIO2[,j], lwW, alternative="two.sided", zero.policy = T) 
+  print(moran.test)
 }
 
 #dataset.BIO2 <- dataset.BIO2_bk
@@ -862,9 +860,9 @@ print(moran.test)
 ```
 
 
-##Diversity
+## Diversity
 
-###Diversity Metrics
+### Diversity Metrics
 
 The following table presents the calculation of several diversity metrics per visit. 
 
@@ -920,7 +918,7 @@ rm(dataset.NAM2)
 ```
 
 
-###Graphs for diversity
+### Graphs for diversity
 
 
 ```{r 25, echo=FALSE}
@@ -1061,6 +1059,6 @@ grid.arrange(graph.N2.1, graph.N2.2, ncol = 2)
 
 ***
 
-Developped by [Martin Jean](mailto:martin.jean@canada.ca) and Evelyne Paquette-Boisclair
+Developped by [Martin Jean](mailto:martin.jean@canada.ca), Evelyne Paquette-Boisclair, and Eva Charbonneau-Bérubé
 
 

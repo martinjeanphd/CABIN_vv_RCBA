@@ -18,7 +18,7 @@ version: '1.2'
 |:------------------------------------|--------------------------------------:|                            
 
 
-#VÉRIFICATION ET VALIDATION RCBA - DONNÉES GÉNÉRALES
+# VÉRIFICATION ET VALIDATION RCBA - DONNÉES GÉNÉRALES
 
 *Environnement et changement climatique Canada*
 
@@ -26,7 +26,18 @@ version: '1.2'
 
 ***
 
-```{r include=FALSE}
+Ce rapport présente les résultats de la vérification et la validation des données générales pour le projet **`r paste(analysisTitle)`**.
+
+Dans cette analyse, le jeu de descripteurs généraux sera vérifié pour répondre à la question suivante :
+
+  + Les données générales reflètent-elles vien les sites visités?
+  
+Ce document est un carnet de notes écrit en [Markdown R](http://rmarkdown.rstudio.com). Pour obtenir les résultats de la vérification et la validation des données, exécuter les commandes contenues dans ce carnet de notes. Pour ce faire, positionnez votre curseur à l'intérieur d'un bloc de code et cliquez sur la flèche verte (nommée *Run Current Chunk*) à la droite de celui-ci, ou appuyez sur les touches *Ctrl+Maj+Entrée* (*Cmd-Maj-Entrée* sur *macOS*) de votre clavier. Répétez pour chaque bloc de code. À mesure que les commandes contenues dans ce carnet seront exécutées, les résultats apparaitront sous chacune des blocs correspondants dans la présente fenêtre. Une fois toutes les commandes exécutées, cliquez sur le bouton *Preview* en haut à gauche de la présente fenêtre ou appuyez sur les touches *Ctrl-Maj+K* (*Cmd+Maj+K* sur *macOS*). Une nouvelle fenêtre apparaitra et contiendra le rapport de ces résultats de la vérification et la validation des données générales RCBA.
+
+
+## Prérequis
+
+```{r setup, include=FALSE}
 ## Required Packages and Custom Functions
 source("../../../Required_packages.R")
 source("../../../Required_functions.R")
@@ -37,25 +48,13 @@ source("../../../Configuration/project_settings.R")
 
 ```
 
+Ce rapport présente les résultats de vérification et validation des données générales RCBA associées au projet **`r paste(analysisTitle)`**.
 
-Ce document est un carnet de note écrit en [Markdown R](http://rmarkdown.rstudio.com). Lorsque vous éxécuter le code intégré au carnet, les résulats apparaitront sous le code correspondant.
-
-Ce rapport présente les résultats de la vérification et la validation des données générales pour le projet **`r paste(datasetName)`**.
-
-Dans cette analyse, le jeu de descripteurs généraux sera vérifié pour répondre à la question suivante :
-  
-  + Les données générales reflètent-elles bien les sites visités?
-
-Ce document est un carnet de notes [R Markdown](http://rmarkdown.rstudio.com). Pour obtenir les résultats de la vérification et la validation des données, exécutez les commandes contenues dans ce carnet de notes. Pour ce faire, positionnez votre curseur à l'intérieur d'une boîte de commandes et cliquez sur la flèche verte à la droite de celle-ci nommée *Run Current Chunk* ou appuyez sur les touches *Ctrl+Maj+Entrée* (*Cmd-Maj+Entrée* sur *macOS*) de votre clavier. Répétez pour chaque boîte de commandes. À mesure que les commandes contenues dans ce carnet seront exécutées, les résultats apparaîtront sous chacune des commandes correspondantes dans la présente fenêtre. Une fois toutes les commandes exécutées, cliquez sur le bouton *Preview* en haut à gauche de la présente fenêtre ou appuyer sur les touches *Ctrl+Maj+K*. Une nouvelle fenêtre apparaîtra et contiendra le rapport de ces résultats de la vérification et la validation des données générales RCBA.
-
-
-##Prérequis
-
-Ce carnet suppose que vous avez importé vos données dans *R* en utilisant le carnet d'importation de données (AED_Importation.Rmd).
+Ce carnet présuppose que vous avez importé vos données *R* en utilisant le carnet *RCBA_vv_importation.Rmd*.
 
 Le fichier contenant les donneés générales de ce projet est **`r if(is.data.frame(dataset.GEN)) "présent" else "absent. Veuillez ouvrir et exécuter le carnet 'RCBA_vv_importation.Rmd' avant d'exécuter le présent carnet"`**.
 
-##Statistiques descriptives
+## Statistiques descriptives
 
 Le fichier de données contient `r {nrow(dataset.GEN)}` visites (lignes) et `r {ncol(dataset.GEN)}` variables (colonnes).
 
@@ -63,7 +62,7 @@ Le tableau suivant présente une partie des données du fichier.
 
 **Lecture des données générales**  
 
-`r head(dataset.GEN) `
+`r datatable(dataset.GEN, filter = "top", rownames =F, options = list(scrollX = TRUE )) `
 
 > ![ACTION:](../../../Configuration/action.png)
 > *Vérifiez les données et assurez-vous que cela réflète bien la réalité. Examinez particulièrement les éléments suivants:*
@@ -72,15 +71,15 @@ Le tableau suivant présente une partie des données du fichier.
 > - *Des colonnes sont-elles manquantes?*
 
 
-**Liste des visites présentes dans les données générales (ID provenant de la base de données RCBA) :**  
+**Liste des visites présentes dans les données générales (ID provenant de la base de données RCBA) :**
 
-`r rownames(dataset.GEN) `
+`r dataset.GEN$SampleId `
 
 > ![ACTION:](../../../Configuration/action.png)
 > *Vérifiez les données et assurez-vous que cela réflète bien la réalité. Comparez la liste ci-haut avec le tableau suivant qui présente les visites présentes dans l'un ou l'autre des fichiers de données pour vous assurez que tout est adéquat.
 
 
-`r formattable(dataset.NAM, align = "c", row.names = TRUE)`
+`r datatable(dataset.NAM, filter = "top", rownames =F, options = list(scrollX = TRUE ))`
 
 
 **Liste des variables :**  
@@ -91,7 +90,7 @@ Le tableau suivant présente une partie des données du fichier.
 > *Vérifiez les variables ci-haut et assurez-vous qu'elles sont toutes présentes.
 
 
-###Statistiques générales
+### Statistiques générales
 
 Le tableau suivant présente les statistiques générales par variable. Lorsque le résultat obtenu à la ligne *BinaryData* du tableau est *TRUE*, cela indique que la variable présente des données binaires. Cependant, ce résultat peut également n'être obtenu que parce que la variable ne présente qu'une à deux données au maximum. La ligne *Na.values* indique le nombre de valeurs manquantes que présente chaque variable.
 
@@ -103,7 +102,8 @@ Le tableau suivant présente les statistiques générales par variable. Lorsque 
 #Tableau des statistiques générales
 
 {summary.GEN <- as.data.frame(t(do.call(cbind, lapply(dataset.GEN, summary))))
-summary.GEN$Std.deviation <- apply(dataset.GEN, 2, sd, na.rm = T)
+summary.GEN$Mean <- format(round(as.numeric(lapply(dataset.GEN, mean, na.rm = T)),2),nsmall=2)#as.numeric( 
+summary.GEN$Std.deviation <- format(round(apply(dataset.GEN, 2, sd, na.rm = T),2), nsmall=2)
 summary.GEN$Length <- colSums(!is.na(dataset.GEN))
 summary.GEN$BinaryData <- sapply(dataset.GEN,function(x)length(unique(na.omit(x)))<=2)
 summary.GEN$NA.values <- colSums(is.na(dataset.GEN))
@@ -112,6 +112,7 @@ summary.GEN <- as.data.frame(t(summary.GEN))
 summary.GEN$Taxonomist <- NULL
 summary.GEN$Study <- NULL
 summary.GEN$Site <- NULL
+summary.GEN$EnvirodatId <- NULL #Peut-être à supprimer selon la pertinence de cette variable
 summary.GEN$SampleDate <- NULL
 summary.GEN$Name <- NULL
 summary.GEN$Basin <- NULL
@@ -127,7 +128,7 @@ summary.GEN$Longitude <- NULL
 summary.GEN$Latitude <- NULL
 summary.GEN$GPSDatum <- NULL
 summary.GEN
-#formattable(summary.GEN, digits = 2, align = "c")
+datatable(summary.GEN, filter = "top", rownames =T, options = list(scrollX = TRUE ))
 }
 
 ```
@@ -137,7 +138,7 @@ summary.GEN
 
 
 
-###Distribution de fréquences
+### Distribution de fréquences
 
 Les tableaux suivants présentent la liste des valeurs observées par variable ainsi que leur fréquence à l'intérieur du fichier de données générales. Ces tableaux permettrent notamment de vérifier et valider l'uniformité de la graphie des valeurs de variables catégoriques observées dans le fichier de données. Si une même valeur est listée deux fois dans un même tableau de fréquence, il est possible que l'une de ces valeurs ait été écrite avec un ou des espaces en trop avant ou après le mot, ce qui pourrait expliquer la différence de graphie des valeurs qui a été détectée par le logiciel. 
 
@@ -149,7 +150,7 @@ Les tableaux suivants présentent la liste des valeurs observées par variable a
 
 
 
-####Taxonomistes
+#### Taxonomistes
 
 
 ```{r, echo=FALSE}
@@ -174,7 +175,7 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 ```
 
 
-####Étude (*Study*)
+#### Étude (*Study*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -182,12 +183,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Study",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Sites
+#### Sites
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -195,12 +196,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Site",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Date d'échantillonnage (*SampleDate*)
+#### Date d'échantillonnage (*SampleDate*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -208,12 +209,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="SampleDate",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Année (*Year*)
+#### Année (*Year*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -221,12 +222,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Year",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ) )
 }
 
 ```
 
-####Jours juliens (*JulianDay*)
+#### Jours juliens (*JulianDay*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -234,12 +235,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="JulianDay",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Nom (*Name*)
+#### Nom (*Name*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -247,12 +248,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Name",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Bassins (*Basin*)
+#### Bassins (*Basin*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -260,12 +261,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Basin",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####KywName
+#### KywName
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -273,12 +274,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="KywName",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Écorégions (*Ecoregion*)
+#### Écorégions (*Ecoregion*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -286,12 +287,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Ecoregion",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Étude (*Study*)
+#### Étude (*Study*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -299,12 +300,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Study",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Province
+#### Province
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -312,12 +313,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Province",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Engins (*Device*)
+#### Engins (*Device*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -325,12 +326,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="Device",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Types d'échantillon (*SampleStatus*)
+#### Types d'échantillon (*SampleStatus*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -338,12 +339,12 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="SampleStatus",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-####Ordres des cours d'eau (*StreamOrder*)
+#### Ordres des cours d'eau (*StreamOrder*)
 
 ```{r, echo=FALSE}
 #Tableaux des fréquences
@@ -351,14 +352,14 @@ formattable(freq.table1, align = "c", row.names = FALSE)
 {
 freq.table1 <- freq.table[freq.table$Variable=="StreamOrder",]
 freq.table1$Variable <- NULL
-formattable(freq.table1, align = "c", row.names = FALSE)
+datatable(freq.table1, filter = "top", rownames =F, options = list(scrollX = TRUE ))
 }
 
 ```
 
-##Présence de données aberrantes
+## Présence de données aberrantes
 
-###Dispersion des valeurs observées
+### Dispersion des valeurs observées
 
 Les diagrammes de dispersion suivants présentent la valeur des données de variables continues observées dans le fichier de données dans l'ordre à laquelle elles apparaissent dans ce fichier. Sous l'axe des X se trouve l'identifiant de la visite vis-à-vis la valeur observée correspondante, soit le nom du site d'où provient la donnée, sa date d'échantillonnage et le nombre d'échantillonnage pris pour cette donnée.
 
@@ -371,7 +372,7 @@ Les diagrammes de dispersion suivants présentent la valeur des données de vari
 #Diagrammes de dispersion des valeurs observées
 
 #Creation d'un dataframe contenant les noms de ligne ainsi que les visites
-dataset.GEN2 <- rownames_to_column(dataset.GEN, var = "rownames")
+dataset.GEN2 <- dataset.GEN
 dataset.GEN2$Site_Date_Number <- paste(dataset.GEN2$Site, "_", dataset.GEN2$SampleDate, "_", dataset.GEN2$SampleNumber)
 
 #Creation d'un sous-ensemble avec les variables numériques
@@ -382,7 +383,7 @@ plot.ab <- ggplot(dataset.GENnum, aes(x = dataset.GENnum$Site_Date_Number, y = d
   geom_point() +
   labs(y = colnames(dataset.GENnum[j]), x = "Visite") +
   theme(axis.text.x = element_text(angle = 90, vjust = -0.05)) +
-   scale_x_discrete(breaks = ifelse(!is.na(dataset.GENnum[,j]), dataset.GENnum$Site_Date_Number, ""), labels = ifelse(!is.na(dataset.GENnum[,j]), dataset.GENnum$Site_Date_Number, ""), na.value = NA) +
+   scale_x_discrete(breaks = "", labels = "", na.value = NA) +
   theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(paste("Valeurs observées de", colnames(dataset.GENnum[j]), "par visite"))
 plot.ab
@@ -391,7 +392,7 @@ print(plot.ab)
 
 ```
 
-###Boîtes à moustaches des valeurs observées et transformées
+### Boîtes à moustaches des valeurs observées et transformées
 
 La première boîte à moustaches (à gauche) présentent la distribution des valeurs de variables continues observées dans le fichier de données et la deuxième boîte à moustaches (à droite) présentent la distribution des valeurs de variables continues observées ayant subies une transformation logarithmique. 
 
@@ -416,7 +417,7 @@ grid.arrange(box.ab.1, box.ab.2, ncol = 2)
 
 ```
 
-###Identification des données aberrantes potentielles
+### Identification des données aberrantes potentielles
 
 La première boîte à moustaches (à gauche) présentent la distribution des valeurs de variables continues observées dans le fichier de données et le diagramme de dispersion (à droite) présentent la distribution des valeurs de variables continues observées dans l'ordre à laquelle elles apparaissent dans ce fichier. Les données présentant une identification par leur identifiant sur les diagrammes représentent les données potentiellement aberrantes contenues dans le fichier de données. La méthode utilisée pour identifier les données potentiellement aberrantes est l'étendue interquantile (*Interquantile range* ou *IQR*). L'IQR se calcule de la manière suivante :
 
@@ -464,9 +465,12 @@ La liste suivante présente les données potentiellement aberrantes contenues da
 #Identification des données aberrantes potentielles (suite)
 
 for (j in 3:ncol(dataset.GENnum)) {
-print(colnames(dataset.GENnum[j]))
-list <- list(ifelse(dataset.GENnum[,j] < quantile(dataset.GENnum[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.GENnum[,j], na.rm = T) | dataset.GENnum[,j] > quantile(dataset.GENnum[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.GENnum[,j], na.rm = T), dataset.GENnum$Site_Date_Number, ""))
-print(list)
+cat(colnames(dataset.GENnum[j]), "\n")
+Active_Frame_General <- data.frame(ifelse(is.na(dataset.GENnum[,j]), dataset.GENnum$Site_Date_Number, ifelse(dataset.GENnum[,j] < quantile(dataset.GENnum[,j], probs=c(.25), na.rm = T) - 1.5*IQR(dataset.GENnum[,j], na.rm = T) | dataset.GENnum[,j] > quantile(dataset.GENnum[,j], probs=c(.75), na.rm = T) + 1.5*IQR(dataset.GENnum[,j], na.rm = T), dataset.GENnum$Site_Date_Number, "")))
+Active_Frame_General["Is NA"] = list(ifelse(is.na(dataset.GENnum[,j]), "Yes", "No"))
+colnames(Active_Frame_General) <- c("Site, Date and Number", "Is NA")
+write.table(Active_Frame_General[Active_Frame_General$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+cat("Nombre de données aberrantes potentielles:", length(Active_Frame_General[Active_Frame_General$"Site, Date and Number" != "",][[1]]), "\n\n")
 }
 
 ```
