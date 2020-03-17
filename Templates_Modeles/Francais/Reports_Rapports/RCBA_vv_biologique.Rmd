@@ -1,4 +1,5 @@
 ---
+title: "Vérification et validation RCBA - données biologiques"
 date: '2018-02-14'
 output:
   html_notebook:
@@ -39,7 +40,7 @@ Ce document est un carnet de notes [R Markdown](http://rmarkdown.rstudio.com). P
 
 ## Prérequis
 
-```{r include=FALSE}
+```{r setup, include=FALSE}
 ## Modules externes et fonctions personnalisées requis
 source("../../../Required_packages.R")
 source("../../../Required_functions.R")
@@ -77,7 +78,7 @@ Le tableau suivant présente une partie des données du fichier.
 > ![ACTION:](../../../Configuration/action.png)
 > *Examinez les points suivants :*
 > 
-> - *La liste ci-haut correspond-t'elle avec le tableau suivant qui présente les visites présentes dans l'un ou l'autre des fichiers de données du projet `r paste(datasetName)`?*
+> - *La liste ci-haut correspond-t'elle avec le tableau suivant qui présente les visites présentes dans l'un ou l'autre des fichiers de données du projet `r paste(analysisTitle)`?*
 
 
 
@@ -108,7 +109,7 @@ summary.BIO$BinaryData <- sapply(dataset.BIO,function(x)length(unique(na.omit(x)
 summary.BIO$NA.values <- colSums(is.na(dataset.BIO))
 summary.BIO$`NA's` <- NULL
 summary.BIO <- as.data.frame(t(summary.BIO))
-summary.BIO
+#summary.BIO
 }
 datatable(summary.BIO, filter = "top", rownames=F, options = list(scrollX = TRUE ))
 
@@ -206,7 +207,7 @@ La carte interactive suivante illustre les mêmes données que le graphique pré
 dataset.NAM2 <- dataset.NAM
 dataset.NAM2$Site_Date_Number <- paste(dataset.NAM2$Site, dataset.NAM2$SampleDate, dataset.NAM2$SampleNumber)
 dataset.SPA2 <- dataset.SPA
-dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleID")
+#dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[,c("SampleId", "Site_Date_Number")], by = "SampleID")
 dataset.SPA2 <- left_join(dataset.SPA2, dataset.NAM2[, c("SampleId", "Site", "SampleDate", "SampleNumber")], by = "SampleId")
 dataset.SPA2 <- left_join(dataset.SPA2, dataset.BIO2[, c("SampleID", "richness")], by = "SampleID")
 dataset.SPA2$Site_Date_Number <- paste(dataset.SPA2$Site, "_", dataset.SPA2$SampleDate, "_", dataset.SPA2$SampleNumber)
@@ -214,7 +215,7 @@ dates <- as.Date(dataset.SPA2$SampleDate, "%Y-%m-%d")
 dataset.SPA2$Year <- strftime(parse_date_time(as.character(dates), "%Y-%m-%d"), "%y")
 dataset.SPA2$Site_Year <- paste(dataset.SPA2$Site, "_", dataset.SPA2$Year)
 
-cabinPoints <- SpatialPointsDataFrame(coords = na.omit(dataset.SPA[, 1:2]), data = na.omit(dataset.SPA[,1:2])
+cabinPoints <- SpatialPointsDataFrame(coords = na.omit(dataset.SPA[, 1:2]), data = na.omit(dataset.SPA[,1:2]))
 
 getColor2 <- function(dataset.SPA2) {
   sapply(dataset.SPA2$SampleDate, function(SampleDate) {
@@ -739,7 +740,7 @@ grid.arrange(box.pres1, box.pres2, ncol = 2)
 
 Les graphiques suivants sont similaires aux précédents mais pour les fréquences relatives
 
-```{r 17, echo=FALSE}
+```{r 18, echo=FALSE}
 #Boîtes à moustaches de fréquences relatives en taxons
 
 box.relf1 <- qplot(y = spe.relf, x = "", geom = "boxplot", ylab = "Fréquence d'occurrence (%)", main = "Distribution des fréquences\nrelatives en taxons") + 
@@ -895,7 +896,7 @@ E20 <- N2/N0
 #(div <- data.frame(N0, H, N1, N2, E10, E20, J))
 #dataset.BIO[dataset.BIO == 0] <- NA
 
-div <- data.frame(N0, H, N1, N2, J, E10, E20, dataset.BIO2$Site_Date_Number)
+div <- data.frame(N0, round(H, 2), round(N1, 2), round(N2, 2), round(J, 2), round(E10, 2), round(E20, 2), dataset.BIO2$Site_Date_Number)
 #div <- rownames_to_column(div, var = "rownames")
 #div <- left_join(div, dataset.NAM2[,c("rownames", "Site_Date_Number")], by = "rownames")
 #div$rownames <- NULL

@@ -126,7 +126,13 @@ Pour débuter, remplacer le mot *Test* dans la ligne plus bas par le nom que vou
 # Exécuter ce bloc de code (Chunk)
 nomDossier <- "Test"
 nomDossier <- svDialogs::dlgInput("Nom du dossier projet à créer:", default = "Test", Sys.info()["nomDossier"])$res
-if(is.null(nomDossier) | length(nomDossier) == 0) {nomDossier = "Test"} else {if(nomDossier == "NA") {nomDossier <- "Test"}}
+if (is.null(nomDossier) | length(nomDossier) == 0) {
+  nomDossier <- "Test"
+} else {
+  if (nomDossier == "NA") {
+    nomDossier <- "Test"
+  }
+}
 
 
 from <- "Templates_Modeles/Francais"

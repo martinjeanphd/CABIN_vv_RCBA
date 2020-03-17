@@ -227,12 +227,12 @@ cat("Number of Potential Outliers:", length(Active_Frame_Spatial[Active_Frame_Sp
 ##Identification of potential outliers (part 2)
 
 for (j in 1:2) {
-cat(colnames(dataset.SPA2[j]), "\n")
-Active_Frame_Spatial <- data.frame(ifelse(is.na(dataset.SPA2[,j]), dataset.SPA2$Site_Date_Number, ""))
-Active_Frame_Spatial["Is NA"] = list(ifelse(is.na(dataset.SPA2[,j]), "Yes", "No"))
-colnames(Active_Frame_Spatial) <- c("Site, Date and Number", "Is NA")
-write.table(Active_Frame_Spatial[Active_Frame_Spatial$"Site, Date and Number" != "",], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
-cat("Number of Potential Outliers:", length(Active_Frame_Spatial[Active_Frame_Spatial$"Site, Date and Number" != "",][[1]]), "\n\n")
+  cat(colnames(dataset.SPA2[j]), "\n")
+  Active_Frame_Spatial <- data.frame(ifelse(is.na(dataset.SPA2[, j]), "", ifelse(dataset.SPA2[, j] < quantile(dataset.SPA2[, j], probs = c(.25), na.rm = T) - 1.5 * IQR(dataset.SPA2[, j], na.rm = T) | dataset.SPA2[, j] > quantile(dataset.SPA2[, j], probs = c(.75), na.rm = T) + 1.5 * IQR(dataset.SPA2[, j], na.rm = T), dataset.SPA2$Site_Date_Number, "")))
+  Active_Frame_Spatial["Is NA"] <- list(ifelse(is.na(dataset.SPA2[, j]), "Yes", "No"))
+  colnames(Active_Frame_Spatial) <- c("Site_Date_SampleNumber", "Is_NA")
+  write.table(Active_Frame_Spatial[Active_Frame_Spatial$Site_Date_SampleNumber != "", ], row.names = FALSE, quote = FALSE, na = "NA", sep = ", ")
+  cat("Number of Potential Outliers:", length(Active_Frame_Spatial[Active_Frame_Spatial$Site_Date_SampleNumber != "", ][[1]]), "\n\n")
 }
 
 ```

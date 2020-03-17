@@ -31,7 +31,7 @@ date: '2017-09-15'
 ***
 
 
-```{r, include=FALSE}
+```{r setup, include=FALSE}
 ## Modules et fonctions personnalisées requises
 source("../../../Required_packages.R")
 source("../../../Required_functions.R")
@@ -323,8 +323,8 @@ Une liste de visites (identifiées au moyen des rubriques *Site, SampleDate, Sam
 ```{r, echo=FALSE}
 # En utilisant les fichiers exportées de la base de données
 #   RCBA, créer une liste unifiée des noms d'échantillons (Site, date, et numéro d'échantillon)
-    names.BIO <- all.dataset.BIO[, c("Site", "SampleDate", "SampleNumber")]
-    names.HAB <- all.dataset.ENV[, c("Site", "SampleDate", "SampleNumber")]
+    names.BIO <- all.dataset.BIO[, c("SampleId", "Site", "SampleDate", "SampleNumber")]
+    names.HAB <- all.dataset.ENV[, c("SampleId", "Site", "SampleDate", "SampleNumber")]
     dataset.NAM <- unique(rbind(names.BIO, names.HAB))
     dataset.NAM <- rm.Time(dataset.NAM)
 	dataset.NAM2 <- arrange(dataset.NAM, Site, SampleDate, SampleNumber)

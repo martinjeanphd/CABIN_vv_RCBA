@@ -1,4 +1,5 @@
 ---
+title: "Vérification et validation RCBA - données d'habitat"
 date: '2017-11-01'
 output:
   html_notebook:
@@ -104,7 +105,7 @@ summary.ENV$BinaryData <- sapply(dataset.ENV,function(x)length(unique(na.omit(x)
 summary.ENV$NA.values <- colSums(is.na(dataset.ENV))
 summary.ENV$`NA's` <- NULL
 summary.ENV <- as.data.frame(t(summary.ENV))
-summary.ENV
+#summary.ENV
 }
 datatable(summary.ENV[which(Var_Type[match(colnames(summary.ENV), Var_Type[,1]),2]=="Numeric")], filter = "top", rownames=T, options = list(scrollX = TRUE ))
 datatable(summary.ENV[which(Var_Type[match(colnames(summary.ENV), Var_Type[,1]),2]=="Binary")], filter = "top", rownames=T, options = list(scrollX = TRUE ))

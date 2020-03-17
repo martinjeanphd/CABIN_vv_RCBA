@@ -1,4 +1,5 @@
 ---
+title: "Vérification et validation RCBA - Données générales"
 date: '2018-02-05'
 output:
   html_notebook:
@@ -376,7 +377,7 @@ dataset.GEN2 <- dataset.GEN
 dataset.GEN2$Site_Date_Number <- paste(dataset.GEN2$Site, "_", dataset.GEN2$SampleDate, "_", dataset.GEN2$SampleNumber)
 
 #Creation d'un sous-ensemble avec les variables numériques
-dataset.GENnum <- dataset.GEN2[, c("rownames", "Site_Date_Number", "Year", "JulianDay", "Altitude", "StreamOrder", "SubSample", "TotalSample")]
+dataset.GENnum <- dataset.GEN2[, c("SampleId", "Site_Date_Number", "Year", "JulianDay", "Altitude", "StreamOrder", "SubSample", "TotalSample")]
 
 for(j in 3:ncol(dataset.GENnum)){
 plot.ab <- ggplot(dataset.GENnum, aes(x = dataset.GENnum$Site_Date_Number, y = dataset.GENnum[,j])) +

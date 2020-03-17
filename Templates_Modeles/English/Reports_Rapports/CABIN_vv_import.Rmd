@@ -308,8 +308,8 @@ A list of samples (identified by the fields *Site, SampleDate, SampleId*) was cr
 ```{r, echo=FALSE}
 # Run the following code without modification
 # Create a unified list of samples (Site, date, et Sample number)
-	names.BIO <- all.dataset.BIO[, c("Site", "SampleDate", "SampleId")]
-	names.HAB <- all.dataset.ENV[, c("Site", "SampleDate", "SampleId")]
+    names.BIO <- all.dataset.BIO[, c("SampleId", "Site", "SampleDate", "SampleNumber")]
+    names.HAB <- all.dataset.ENV[, c("SampleId", "Site", "SampleDate", "SampleNumber")]
 	dataset.NAM <- unique(rbind(names.BIO, names.HAB))
 	dataset.NAM <- rm.Time(dataset.NAM)
 	dataset.NAM2 <- arrange(dataset.NAM, Site, SampleDate, SampleId)
