@@ -148,10 +148,10 @@ myProject <- function(proj, ...) {
     cat(paste(x, collapse="\n"), file=file.path(proj, paste0(basename(proj), ".Rproj")))
 
     message(paste(basename(proj), "a été créé"))
-    svDialogs::dlg_message(paste(nomDossier, " a été créé."), type = c("ok"))
+    svDialogs::dlg_message(paste(folderName, " a été créé."), type = c("ok"))
 }
 
-myProject(paste(to, nomDossier, sep = ""))
+myProject(paste(to, folderName, sep = ""))
 ```
 
 
